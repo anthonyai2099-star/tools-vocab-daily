@@ -1035,18 +1035,33 @@ function getTodayStr() {
 async function init() {
   appState.db = await openDB();
 
-  // 导入/合并内置词库
+  // 导入/合并内置词库（新增词 + 补全已有词字段）
   const existing = await getAll('words');
-  const existingWords = new Set(existing.map(w => w.word.toLowerCase()));
-  const newWords = UNIQUE_VOCAB.filter(w => !existingWords.has(w.word.toLowerCase()));
+  const existingMap = new Map(existing.map(w => [w.word.toLowerCase(), w]));
+  const newWords = [];
+  const updatedWords = [];
 
-  if (newWords.length > 0) {
+  for (const w of UNIQUE_VOCAB) {
+    const old = existingMap.get(w.word.toLowerCase());
+    if (!old) {
+      newWords.push(w);
+    } else if (!old.pos && w.pos) {
+      // 已有但缺少 pos 等字段，补全（保留原 id，不丢进度）
+      updatedWords.push({...old, pos: w.pos});
+    }
+  }
+
+  if (newWords.length > 0 || updatedWords.length > 0) {
     const tx = appState.db.transaction('words', 'readwrite');
     const store = tx.objectStore('words');
     for (const w of newWords) store.put(w);
+    for (const w of updatedWords) store.put(w);
     await new Promise((res,rej)=>{tx.oncomplete=res;tx.onerror=rej;});
     if (existing.length > 0) {
-      showToast(`词库已更新，新增 ${newWords.length} 个单词`);
+      let msg = '';
+      if (newWords.length > 0) msg += `新增 ${newWords.length} 个`;
+      if (updatedWords.length > 0) msg += (msg ? ' · ' : '') + `更新 ${updatedWords.length} 个`;
+      showToast(`词库已更新：${msg}`);
     }
   }
 
