@@ -17,7 +17,8 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Ro
 #nav .nav-btn{background:none;border:none;color:#fff;font-size:22px;padding:8px;cursor:pointer}
 
 /* Pages */
-.page{flex:1;overflow-y:auto;padding:16px;display:none}
+#main{flex:1;overflow-y:auto;position:relative}
+.page{padding:16px;display:none}
 .page.active{display:block}
 
 /* Home */
@@ -688,6 +689,191 @@ const BUILT_IN_VOCAB = [
   {id:'n18',word:'species',phonetic:'/ˈspiː.ʃiːz/',meaning:'物种',theme:'自然环境'},
   {id:'n19',word:'habitat',phonetic:'/ˈhæb.ɪ.tæt/',meaning:'栖息地',theme:'自然环境'},
   {id:'n20',word:'extinct',phonetic:'/ɪkˈstɪŋkt/',meaning:'灭绝的',theme:'自然环境'},
+  // 教育学习
+  {id:'ed1',word:'student',phonetic:'/ˈstuː.dənt/',meaning:'学生',theme:'教育学习'},
+  {id:'ed2',word:'teacher',phonetic:'/ˈtiː.tʃɚ/',meaning:'老师',theme:'教育学习'},
+  {id:'ed3',word:'professor',phonetic:'/prəˈfes.ɚ/',meaning:'教授',theme:'教育学习'},
+  {id:'ed4',word:'classroom',phonetic:'/ˈklæs.ruːm/',meaning:'教室',theme:'教育学习'},
+  {id:'ed5',word:'textbook',phonetic:'/ˈtekst.bʊk/',meaning:'课本',theme:'教育学习'},
+  {id:'ed6',word:'homework',phonetic:'/ˈhoʊm.wɝːk/',meaning:'作业',theme:'教育学习'},
+  {id:'ed7',word:'exam',phonetic:'/ɪɡˈzæm/',meaning:'考试',theme:'教育学习'},
+  {id:'ed8',word:'quiz',phonetic:'/kwɪz/',meaning:'小测验',theme:'教育学习'},
+  {id:'ed9',word:'grade',phonetic:'/ɡreɪd/',meaning:'成绩',theme:'教育学习'},
+  {id:'ed10',word:'degree',phonetic:'/dɪˈɡriː/',meaning:'学位',theme:'教育学习'},
+  {id:'ed11',word:'diploma',phonetic:'/dɪˈploʊ.mə/',meaning:'文凭',theme:'教育学习'},
+  {id:'ed12',word:'scholarship',phonetic:'/ˈskɑː.lɚˌʃɪp/',meaning:'奖学金',theme:'教育学习'},
+  {id:'ed13',word:'tuition',phonetic:'/tuˈɪʃ.ən/',meaning:'学费',theme:'教育学习'},
+  {id:'ed14',word:'campus',phonetic:'/ˈkæm.pəs/',meaning:'校园',theme:'教育学习'},
+  {id:'ed15',word:'library',phonetic:'/ˈlaɪ.brer.i/',meaning:'图书馆',theme:'教育学习'},
+  {id:'ed16',word:'laboratory',phonetic:'/ˈlæb.rə.tɔːr.i/',meaning:'实验室',theme:'教育学习'},
+  {id:'ed17',word:'lecture',phonetic:'/ˈlek.tʃɚ/',meaning:'讲座',theme:'教育学习'},
+  {id:'ed18',word:'seminar',phonetic:'/ˈsem.ə.nɑːr/',meaning:'研讨会',theme:'教育学习'},
+  {id:'ed19',word:'curriculum',phonetic:'/kəˈrɪk.jə.ləm/',meaning:'课程',theme:'教育学习'},
+  {id:'ed20',word:'major',phonetic:'/ˈmeɪ.dʒɚ/',meaning:'专业',theme:'教育学习'},
+  {id:'ed21',word:'subject',phonetic:'/ˈsʌb.dʒekt/',meaning:'科目',theme:'教育学习'},
+  {id:'ed22',word:'mathematics',phonetic:'/ˌmæθ.əˈmæt̬.ɪks/',meaning:'数学',theme:'教育学习'},
+  {id:'ed23',word:'physics',phonetic:'/ˈfɪz.ɪks/',meaning:'物理',theme:'教育学习'},
+  {id:'ed24',word:'chemistry',phonetic:'/ˈkem.ɪ.stri/',meaning:'化学',theme:'教育学习'},
+  {id:'ed25',word:'biology',phonetic:'/baɪˈɑː.lə.dʒi/',meaning:'生物',theme:'教育学习'},
+  {id:'ed26',word:'history',phonetic:'/ˈhɪs.t̬ɚ.i/',meaning:'历史',theme:'教育学习'},
+  {id:'ed27',word:'geography',phonetic:'/dʒiˈɑː.ɡrə.fi/',meaning:'地理',theme:'教育学习'},
+  {id:'ed28',word:'literature',phonetic:'/ˈlɪt̬.ɚ.ə.tʃɚ/',meaning:'文学',theme:'教育学习'},
+  {id:'ed29',word:'philosophy',phonetic:'/fɪˈlɑː.sə.fi/',meaning:'哲学',theme:'教育学习'},
+  {id:'ed30',word:'psychology',phonetic:'/saɪˈkɑː.lə.dʒi/',meaning:'心理学',theme:'教育学习'},
+  {id:'ed31',word:'economics',phonetic:'/ˌiː.kəˈnɑː.mɪks/',meaning:'经济学',theme:'教育学习'},
+  {id:'ed32',word:'art',phonetic:'/ɑːrt/',meaning:'艺术',theme:'教育学习'},
+  {id:'ed33',word:'music',phonetic:'/ˈmjuː.zɪk/',meaning:'音乐',theme:'教育学习'},
+  {id:'ed34',word:'kindergarten',phonetic:'/ˈkɪn.dɚˌɡɑːr.tən/',meaning:'幼儿园',theme:'教育学习'},
+  {id:'ed35',word:'university',phonetic:'/ˌjuː.nəˈvɝː.sə.t̬i/',meaning:'大学',theme:'教育学习'},
+  {id:'ed36',word:'graduate',phonetic:'/ˈɡrædʒ.u.ət/',meaning:'毕业生',theme:'教育学习'},
+  {id:'ed37',word:'academic',phonetic:'/ˌæk.əˈdem.ɪk/',meaning:'学术的',theme:'教育学习'},
+  {id:'ed38',word:'research',phonetic:'/rɪˈsɝːtʃ/',meaning:'研究',theme:'教育学习'},
+  {id:'ed39',word:'thesis',phonetic:'/ˈθiː.sɪs/',meaning:'论文',theme:'教育学习'},
+  {id:'ed40',word:'knowledge',phonetic:'/ˈnɑː.lɪdʒ/',meaning:'知识',theme:'教育学习'},
+  // 食品饮料
+  {id:'fo1',word:'breakfast',phonetic:'/ˈbrek.fəst/',meaning:'早餐',theme:'食品饮料'},
+  {id:'fo2',word:'lunch',phonetic:'/lʌntʃ/',meaning:'午餐',theme:'食品饮料'},
+  {id:'fo3',word:'dinner',phonetic:'/ˈdɪn.ɚ/',meaning:'晚餐',theme:'食品饮料'},
+  {id:'fo4',word:'snack',phonetic:'/snæk/',meaning:'零食',theme:'食品饮料'},
+  {id:'fo5',word:'dessert',phonetic:'/dɪˈzɝːt/',meaning:'甜品',theme:'食品饮料'},
+  {id:'fo6',word:'bread',phonetic:'/bred/',meaning:'面包',theme:'食品饮料'},
+  {id:'fo7',word:'cake',phonetic:'/keɪk/',meaning:'蛋糕',theme:'食品饮料'},
+  {id:'fo8',word:'cookie',phonetic:'/ˈkʊk.i/',meaning:'饼干',theme:'食品饮料'},
+  {id:'fo9',word:'chocolate',phonetic:'/ˈtʃɑː.kələt/',meaning:'巧克力',theme:'食品饮料'},
+  {id:'fo10',word:'candy',phonetic:'/ˈkæn.di/',meaning:'糖果',theme:'食品饮料'},
+  {id:'fo11',word:'coffee',phonetic:'/ˈkɑː.fi/',meaning:'咖啡',theme:'食品饮料'},
+  {id:'fo12',word:'tea',phonetic:'/tiː/',meaning:'茶',theme:'食品饮料'},
+  {id:'fo13',word:'juice',phonetic:'/dʒuːs/',meaning:'果汁',theme:'食品饮料'},
+  {id:'fo14',word:'milk',phonetic:'/mɪlk/',meaning:'牛奶',theme:'食品饮料'},
+  {id:'fo15',word:'beer',phonetic:'/bɪr/',meaning:'啤酒',theme:'食品饮料'},
+  {id:'fo16',word:'wine',phonetic:'/waɪn/',meaning:'红酒',theme:'食品饮料'},
+  {id:'fo17',word:'meat',phonetic:'/miːt/',meaning:'肉',theme:'食品饮料'},
+  {id:'fo18',word:'beef',phonetic:'/biːf/',meaning:'牛肉',theme:'食品饮料'},
+  {id:'fo19',word:'pork',phonetic:'/pɔːrk/',meaning:'猪肉',theme:'食品饮料'},
+  {id:'fo20',word:'chicken',phonetic:'/ˈtʃɪk.ɪn/',meaning:'鸡肉',theme:'食品饮料'},
+  {id:'fo21',word:'fish',phonetic:'/fɪʃ/',meaning:'鱼',theme:'食品饮料'},
+  {id:'fo22',word:'egg',phonetic:'/eɡ/',meaning:'鸡蛋',theme:'食品饮料'},
+  {id:'fo23',word:'cheese',phonetic:'/tʃiːz/',meaning:'奶酪',theme:'食品饮料'},
+  {id:'fo24',word:'butter',phonetic:'/ˈbʌt̬.ɚ/',meaning:'黄油',theme:'食品饮料'},
+  {id:'fo25',word:'salad',phonetic:'/ˈsæl.əd/',meaning:'沙拉',theme:'食品饮料'},
+  {id:'fo26',word:'soup',phonetic:'/suːp/',meaning:'汤',theme:'食品饮料'},
+  {id:'fo27',word:'noodle',phonetic:'/ˈnuː.dəl/',meaning:'面条',theme:'食品饮料'},
+  {id:'fo28',word:'rice',phonetic:'/raɪs/',meaning:'米饭',theme:'食品饮料'},
+  {id:'fo29',word:'pasta',phonetic:'/ˈpɑː.stə/',meaning:'意大利面',theme:'食品饮料'},
+  {id:'fo30',word:'pizza',phonetic:'/ˈpiːt.sə/',meaning:'披萨',theme:'食品饮料'},
+  {id:'fo31',word:'sandwich',phonetic:'/ˈsæn.wɪtʃ/',meaning:'三明治',theme:'食品饮料'},
+  {id:'fo32',word:'hamburger',phonetic:'/ˈhæm.bɝː.ɡɚ/',meaning:'汉堡',theme:'食品饮料'},
+  {id:'fo33',word:'potato',phonetic:'/pəˈteɪ.toʊ/',meaning:'土豆',theme:'食品饮料'},
+  {id:'fo34',word:'tomato',phonetic:'/təˈmeɪ.toʊ/',meaning:'西红柿',theme:'食品饮料'},
+  {id:'fo35',word:'onion',phonetic:'/ˈʌn.jən/',meaning:'洋葱',theme:'食品饮料'},
+  {id:'fo36',word:'carrot',phonetic:'/ˈker.ət/',meaning:'胡萝卜',theme:'食品饮料'},
+  {id:'fo37',word:'apple',phonetic:'/ˈæp.əl/',meaning:'苹果',theme:'食品饮料'},
+  {id:'fo38',word:'banana',phonetic:'/bəˈnæn.ə/',meaning:'香蕉',theme:'食品饮料'},
+  {id:'fo39',word:'orange',phonetic:'/ˈɔːr.ɪndʒ/',meaning:'橙子',theme:'食品饮料'},
+  {id:'fo40',word:'grape',phonetic:'/ɡreɪp/',meaning:'葡萄',theme:'食品饮料'},
+  // 衣物服饰
+  {id:'cl1',word:'shirt',phonetic:'/ʃɝːt/',meaning:'衬衫',theme:'衣物服饰'},
+  {id:'cl2',word:'t-shirt',phonetic:'/ˈtiː ʃɝːt/',meaning:'T恤',theme:'衣物服饰'},
+  {id:'cl3',word:'sweater',phonetic:'/ˈswet̬.ɚ/',meaning:'毛衣',theme:'衣物服饰'},
+  {id:'cl4',word:'jacket',phonetic:'/ˈdʒæk.ɪt/',meaning:'夹克',theme:'衣物服饰'},
+  {id:'cl5',word:'coat',phonetic:'/koʊt/',meaning:'外套',theme:'衣物服饰'},
+  {id:'cl6',word:'suit',phonetic:'/suːt/',meaning:'西装',theme:'衣物服饰'},
+  {id:'cl7',word:'dress',phonetic:'/dres/',meaning:'连衣裙',theme:'衣物服饰'},
+  {id:'cl8',word:'skirt',phonetic:'/skɝːt/',meaning:'裙子',theme:'衣物服饰'},
+  {id:'cl9',word:'pants',phonetic:'/pænts/',meaning:'裤子',theme:'衣物服饰'},
+  {id:'cl10',word:'jeans',phonetic:'/dʒiːnz/',meaning:'牛仔裤',theme:'衣物服饰'},
+  {id:'cl11',word:'shorts',phonetic:'/ʃɔːrts/',meaning:'短裤',theme:'衣物服饰'},
+  {id:'cl12',word:'socks',phonetic:'/sɑːks/',meaning:'袜子',theme:'衣物服饰'},
+  {id:'cl13',word:'shoes',phonetic:'/ʃuːz/',meaning:'鞋子',theme:'衣物服饰'},
+  {id:'cl14',word:'boots',phonetic:'/buːts/',meaning:'靴子',theme:'衣物服饰'},
+  {id:'cl15',word:'hat',phonetic:'/hæt/',meaning:'帽子',theme:'衣物服饰'},
+  {id:'cl16',word:'scarf',phonetic:'/skɑːrf/',meaning:'围巾',theme:'衣物服饰'},
+  {id:'cl17',word:'gloves',phonetic:'/ɡlʌvz/',meaning:'手套',theme:'衣物服饰'},
+  {id:'cl18',word:'tie',phonetic:'/taɪ/',meaning:'领带',theme:'衣物服饰'},
+  {id:'cl19',word:'belt',phonetic:'/belt/',meaning:'腰带',theme:'衣物服饰'},
+  {id:'cl20',word:'button',phonetic:'/ˈbʌt̬.ən/',meaning:'纽扣',theme:'衣物服饰'},
+  {id:'cl21',word:'collar',phonetic:'/ˈkɑː.lɚ/',meaning:'衣领',theme:'衣物服饰'},
+  {id:'cl22',word:'sleeve',phonetic:'/sliːv/',meaning:'袖子',theme:'衣物服饰'},
+  {id:'cl23',word:'pocket',phonetic:'/ˈpɑː.kɪt/',meaning:'口袋',theme:'衣物服饰'},
+  {id:'cl24',word:'zipper',phonetic:'/ˈzɪp.ɚ/',meaning:'拉链',theme:'衣物服饰'},
+  {id:'cl25',word:'cotton',phonetic:'/ˈkɑːt̬.ən/',meaning:'棉花',theme:'衣物服饰'},
+  {id:'cl26',word:'silk',phonetic:'/sɪlk/',meaning:'丝绸',theme:'衣物服饰'},
+  {id:'cl27',word:'wool',phonetic:'/wʊl/',meaning:'羊毛',theme:'衣物服饰'},
+  {id:'cl28',word:'leather',phonetic:'/ˈleð.ɚ/',meaning:'皮革',theme:'衣物服饰'},
+  {id:'cl29',word:'fashion',phonetic:'/ˈfæʃ.ən/',meaning:'时尚',theme:'衣物服饰'},
+  {id:'cl30',word:'style',phonetic:'/staɪl/',meaning:'风格',theme:'衣物服饰'},
+  {id:'cl31',word:'uniform',phonetic:'/ˈjuː.nə.fɔːrm/',meaning:'制服',theme:'衣物服饰'},
+  {id:'cl32',word:'jewelry',phonetic:'/ˈdʒuː.əl.ri/',meaning:'珠宝',theme:'衣物服饰'},
+  {id:'cl33',word:'ring',phonetic:'/rɪŋ/',meaning:'戒指',theme:'衣物服饰'},
+  {id:'cl34',word:'necklace',phonetic:'/ˈnek.ləs/',meaning:'项链',theme:'衣物服饰'},
+  {id:'cl35',word:'glasses',phonetic:'/ˈɡlæs.ɪz/',meaning:'眼镜',theme:'衣物服饰'},
+  // 人际关系
+  {id:'re1',word:'family',phonetic:'/ˈfæm.əl.i/',meaning:'家庭',theme:'人际关系'},
+  {id:'re2',word:'parent',phonetic:'/ˈper.ənt/',meaning:'父母',theme:'人际关系'},
+  {id:'re3',word:'mother',phonetic:'/ˈmʌð.ɚ/',meaning:'母亲',theme:'人际关系'},
+  {id:'re4',word:'father',phonetic:'/ˈfɑː.ðɚ/',meaning:'父亲',theme:'人际关系'},
+  {id:'re5',word:'child',phonetic:'/tʃaɪld/',meaning:'孩子',theme:'人际关系'},
+  {id:'re6',word:'son',phonetic:'/sʌn/',meaning:'儿子',theme:'人际关系'},
+  {id:'re7',word:'daughter',phonetic:'/ˈdɑː.t̬ɚ/',meaning:'女儿',theme:'人际关系'},
+  {id:'re8',word:'brother',phonetic:'/ˈbrʌð.ɚ/',meaning:'兄弟',theme:'人际关系'},
+  {id:'re9',word:'sister',phonetic:'/ˈsɪs.tɚ/',meaning:'姐妹',theme:'人际关系'},
+  {id:'re10',word:'husband',phonetic:'/ˈhʌz.bənd/',meaning:'丈夫',theme:'人际关系'},
+  {id:'re11',word:'wife',phonetic:'/waɪf/',meaning:'妻子',theme:'人际关系'},
+  {id:'re12',word:'marriage',phonetic:'/ˈmer.ɪdʒ/',meaning:'婚姻',theme:'人际关系'},
+  {id:'re13',word:'wedding',phonetic:'/ˈwed.ɪŋ/',meaning:'婚礼',theme:'人际关系'},
+  {id:'re14',word:'divorce',phonetic:'/dɪˈvɔːrs/',meaning:'离婚',theme:'人际关系'},
+  {id:'re15',word:'relative',phonetic:'/ˈrel.ə.t̬ɪv/',meaning:'亲戚',theme:'人际关系'},
+  {id:'re16',word:'uncle',phonetic:'/ˈʌŋ.kəl/',meaning:'叔叔',theme:'人际关系'},
+  {id:'re17',word:'aunt',phonetic:'/ænt/',meaning:'阿姨',theme:'人际关系'},
+  {id:'re18',word:'cousin',phonetic:'/ˈkʌz.ən/',meaning:'堂/表兄弟姐妹',theme:'人际关系'},
+  {id:'re19',word:'grandfather',phonetic:'/ˈɡræn.də.fɑːr/',meaning:'祖父',theme:'人际关系'},
+  {id:'re20',word:'grandmother',phonetic:'/ˈɡræn.də.mʌð.ɚ/',meaning:'祖母',theme:'人际关系'},
+  {id:'re21',word:'friend',phonetic:'/frend/',meaning:'朋友',theme:'人际关系'},
+  {id:'re22',word:'friendship',phonetic:'/ˈfrend.ʃɪp/',meaning:'友谊',theme:'人际关系'},
+  {id:'re23',word:'neighbor',phonetic:'/ˈneɪ.bɚ/',meaning:'邻居',theme:'人际关系'},
+  {id:'re24',word:'colleague',phonetic:'/ˈkɑː.liːɡ/',meaning:'同事',theme:'人际关系'},
+  {id:'re25',word:'classmate',phonetic:'/ˈklæs.meɪt/',meaning:'同学',theme:'人际关系'},
+  {id:'re26',word:'roommate',phonetic:'/ˈruːm.meɪt/',meaning:'室友',theme:'人际关系'},
+  {id:'re27',word:'partner',phonetic:'/ˈpɑːrt.nɚ/',meaning:'伴侣',theme:'人际关系'},
+  {id:'re28',word:'boyfriend',phonetic:'/ˈbɔɪ.frend/',meaning:'男朋友',theme:'人际关系'},
+  {id:'re29',word:'girlfriend',phonetic:'/ˈɡɝːl.frend/',meaning:'女朋友',theme:'人际关系'},
+  {id:'re30',word:'stranger',phonetic:'/ˈstreɪn.dʒɚ/',meaning:'陌生人',theme:'人际关系'},
+  {id:'re31',word:'guest',phonetic:'/ɡest/',meaning:'客人',theme:'人际关系'},
+  {id:'re32',word:'host',phonetic:'/hoʊst/',meaning:'主人',theme:'人际关系'},
+  {id:'re33',word:'boss',phonetic:'/bɑːs/',meaning:'老板',theme:'人际关系'},
+  {id:'re34',word:'employee',phonetic:'/ɪmˈplɔɪ.iː/',meaning:'员工',theme:'人际关系'},
+  {id:'re35',word:'leader',phonetic:'/ˈliː.dɚ/',meaning:'领导',theme:'人际关系'},
+  // 政治外交
+  {id:'po1',word:'politics',phonetic:'/ˈpɑː.lə.t̬ɪks/',meaning:'政治',theme:'政治外交'},
+  {id:'po2',word:'government',phonetic:'/ˈɡʌv.ɚn.mənt/',meaning:'政府',theme:'政治外交'},
+  {id:'po3',word:'president',phonetic:'/ˈprez.ɪ.dənt/',meaning:'总统',theme:'政治外交'},
+  {id:'po4',word:'minister',phonetic:'/ˈmɪn.ɪ.stɚ/',meaning:'部长',theme:'政治外交'},
+  {id:'po5',word:'ambassador',phonetic:'/æmˈbæs.ə.dɚ/',meaning:'大使',theme:'政治外交'},
+  {id:'po6',word:'embassy',phonetic:'/ˈem.bə.si/',meaning:'大使馆',theme:'政治外交'},
+  {id:'po7',word:'diplomat',phonetic:'/ˈdɪp.lə.mæt/',meaning:'外交官',theme:'政治外交'},
+  {id:'po8',word:'election',phonetic:'/ɪˈlek.ʃən/',meaning:'选举',theme:'政治外交'},
+  {id:'po9',word:'vote',phonetic:'/voʊt/',meaning:'投票',theme:'政治外交'},
+  {id:'po10',word:'party',phonetic:'/ˈpɑːr.ti/',meaning:'政党',theme:'政治外交'},
+  {id:'po11',word:'law',phonetic:'/lɑː/',meaning:'法律',theme:'政治外交'},
+  {id:'po12',word:'policy',phonetic:'/ˈpɑː.lə.si/',meaning:'政策',theme:'政治外交'},
+  {id:'po13',word:'treaty',phonetic:'/ˈtriː.t̬i/',meaning:'条约',theme:'政治外交'},
+  {id:'po14',word:'agreement',phonetic:'/əˈɡriː.mənt/',meaning:'协议',theme:'政治外交'},
+  {id:'po15',word:'summit',phonetic:'/ˈsʌm.ɪt/',meaning:'峰会',theme:'政治外交'},
+  {id:'po16',word:'alliance',phonetic:'/əˈlaɪ.əns/',meaning:'联盟',theme:'政治外交'},
+  {id:'po17',word:'sanction',phonetic:'/ˈsæŋk.ʃən/',meaning:'制裁',theme:'政治外交'},
+  {id:'po18',word:'conflict',phonetic:'/ˈkɑːn.flɪkt/',meaning:'冲突',theme:'政治外交'},
+  {id:'po19',word:'negotiation',phonetic:'/nəˌɡoʊ.ʃiˈeɪ.ʃən/',meaning:'谈判',theme:'政治外交'},
+  {id:'po20',word:'compromise',phonetic:'/ˈkɑːm.prə.maɪz/',meaning:'妥协',theme:'政治外交'},
+  {id:'po21',word:'democracy',phonetic:'/dɪˈmɑː.krə.si/',meaning:'民主',theme:'政治外交'},
+  {id:'po22',word:'republic',phonetic:'/rɪˈpʌb.lɪk/',meaning:'共和国',theme:'政治外交'},
+  {id:'po23',word:'constitution',phonetic:'/ˌkɑːn.stəˈtuː.ʃən/',meaning:'宪法',theme:'政治外交'},
+  {id:'po24',word:'parliament',phonetic:'/ˈpɑːr.lə.mənt/',meaning:'议会',theme:'政治外交'},
+  {id:'po25',word:'congress',phonetic:'/ˈkɑːŋ.ɡrəs/',meaning:'国会',theme:'政治外交'},
+  {id:'po26',word:'senator',phonetic:'/ˈsen.ə.t̬ɚ/',meaning:'参议员',theme:'政治外交'},
+  {id:'po27',word:'representative',phonetic:'/ˌrep.rɪˈzen.t̬ə.t̬ɪv/',meaning:'代表',theme:'政治外交'},
+  {id:'po28',word:'citizen',phonetic:'/ˈsɪt̬.ɪ.zən/',meaning:'公民',theme:'政治外交'},
+  {id:'po29',word:'refugee',phonetic:'/ˈref.juː.dʒiː/',meaning:'难民',theme:'政治外交'},
+  {id:'po30',word:'territory',phonetic:'/ˈter.ə.tɔːr.i/',meaning:'领土',theme:'政治外交'},
 ];
 
 // 去重（基于word字段）
@@ -834,13 +1020,19 @@ function getTodayStr() {
 async function init() {
   appState.db = await openDB();
 
-  // 检查是否已导入内置词库
+  // 导入/合并内置词库
   const existing = await getAll('words');
-  if (existing.length === 0) {
+  const existingWords = new Set(existing.map(w => w.word.toLowerCase()));
+  const newWords = UNIQUE_VOCAB.filter(w => !existingWords.has(w.word.toLowerCase()));
+
+  if (newWords.length > 0) {
     const tx = appState.db.transaction('words', 'readwrite');
     const store = tx.objectStore('words');
-    for (const w of UNIQUE_VOCAB) store.put(w);
+    for (const w of newWords) store.put(w);
     await new Promise((res,rej)=>{tx.oncomplete=res;tx.onerror=rej;});
+    if (existing.length > 0) {
+      showToast(`词库已更新，新增 ${newWords.length} 个单词`);
+    }
   }
 
   // 加载设置
@@ -1175,11 +1367,12 @@ async function renderVocab() {
   );
 
   const list = document.getElementById('vocab-list');
+  const totalInfo = `<div style="font-size:14px;color:#666;margin-bottom:12px">词库共 ${words.length} 个单词 · 当前显示 ${filtered.length} 个</div>`;
   if (filtered.length === 0) {
-    list.innerHTML = '<div class="empty"><div class="icon">&#128218;</div>没有找到单词</div>';
+    list.innerHTML = totalInfo + '<div class="empty"><div class="icon">&#128218;</div>没有找到单词</div>';
     return;
   }
-  list.innerHTML = filtered.map(w => `
+  list.innerHTML = totalInfo + filtered.map(w => `
     <div class="vocab-item">
       <div>
         <span class="w">${w.word}</span>
