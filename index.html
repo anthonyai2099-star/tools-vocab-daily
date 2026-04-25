@@ -1,0 +1,1385 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#2563eb">
+<title>Vocab Daily</title>
+<link rel="manifest" href="data:application/json;base64,eyJuYW1lIjoiVm9jYWIgRGFpbHkiLCJzaG9ydF9uYW1lIjoiVm9jYWIiLCJzdGFydF91cmwiOiIuIiwiZGlzcGxheSI6InN0YW5kYWxvbmUiLCJiYWNrZ3JvdW5kX2NvbG9yIjoiI2ZmZiIsInRoZW1lX2NvbG9yIjoiIzI1NjNlYiJ9">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:#f5f5f5;color:#333;overflow:hidden}
+#app{height:100%;display:flex;flex-direction:column}
+
+/* Nav */
+#nav{height:56px;background:#2563eb;color:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 16px;flex-shrink:0;position:relative;z-index:100}
+#nav h1{font-size:18px;font-weight:600}
+#nav .nav-btn{background:none;border:none;color:#fff;font-size:22px;padding:8px;cursor:pointer}
+
+/* Pages */
+.page{flex:1;overflow-y:auto;padding:16px;display:none}
+.page.active{display:block}
+
+/* Home */
+.home-header{text-align:center;padding:32px 0}
+.home-header .big-num{font-size:72px;font-weight:700;color:#2563eb;line-height:1}
+.home-header .big-label{font-size:16px;color:#666;margin-top:8px}
+.home-progress{width:100%;height:12px;background:#e5e7eb;border-radius:6px;margin:24px 0;overflow:hidden}
+.home-progress .bar{height:100%;background:#2563eb;border-radius:6px;transition:width .3s}
+.btn{display:block;width:100%;padding:16px;border:none;border-radius:12px;font-size:18px;font-weight:600;cursor:pointer;margin:8px 0;text-align:center}
+.btn-primary{background:#2563eb;color:#fff}
+.btn-secondary{background:#e5e7eb;color:#333}
+.btn-success{background:#16a34a;color:#fff}
+.btn-danger{background:#dc2626;color:#fff}
+.theme-tags{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0}
+.theme-tag{padding:6px 14px;border-radius:20px;font-size:13px;background:#e5e7eb;color:#555;border:none;cursor:pointer}
+.theme-tag.active{background:#2563eb;color:#fff}
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:16px 0}
+.stat-card{background:#fff;border-radius:12px;padding:16px;text-align:center;box-shadow:0 1px 3px rgba(0,0,0,.1)}
+.stat-card .num{font-size:28px;font-weight:700;color:#2563eb}
+.stat-card .label{font-size:13px;color:#666;margin-top:4px}
+
+/* Study */
+#study-area{position:relative;height:calc(100% - 60px);display:flex;flex-direction:column;align-items:center;justify-content:center}
+.card-wrap{position:relative;width:100%;max-width:400px;height:420px;margin:0 auto}
+.word-card{position:absolute;top:0;left:0;width:100%;height:100%;background:#fff;border-radius:20px;box-shadow:0 4px 20px rgba(0,0,0,.12);display:flex;flex-direction:column;padding:32px 24px;transition:transform .2s,opacity .2s;touch-action:none}
+.word-card .word{font-size:36px;font-weight:700;color:#1f2937;text-align:center;margin-top:40px}
+.word-card .phonetic{font-size:18px;color:#6b7280;text-align:center;margin-top:8px;font-family:"Lucida Sans Unicode",Arial,sans-serif}
+.word-card .meaning{font-size:20px;color:#374151;text-align:center;margin-top:32px;line-height:1.6}
+.word-card .theme-label{position:absolute;top:16px;right:16px;font-size:12px;color:#9ca3af;background:#f3f4f6;padding:4px 10px;border-radius:10px}
+.speak-btn{position:absolute;top:16px;left:16px;width:40px;height:40px;border-radius:50%;border:none;background:#eff6ff;color:#2563eb;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.study-controls{position:fixed;bottom:0;left:0;right:0;padding:16px;background:#fff;border-top:1px solid #e5e7eb;display:flex;gap:12px;z-index:50}
+.study-controls .btn{margin:0;flex:1}
+.study-info{position:fixed;top:56px;left:0;right:0;background:#fef3c7;padding:8px 16px;font-size:13px;color:#92400e;display:flex;justify-content:space-between;align-items:center;z-index:40}
+.study-info .undo-link{color:#2563eb;text-decoration:underline;cursor:pointer}
+#today-known-list{position:fixed;top:90px;left:16px;right:16px;background:#fff;border-radius:12px;box-shadow:0 4px 12px rgba(0,0,0,.15);max-height:300px;overflow-y:auto;padding:12px;z-index:45;display:none}
+#today-known-list.show{display:block}
+.known-item{display:flex;justify-content:space-between;align-items:center;padding:8px;border-bottom:1px solid #f3f4f6}
+.known-item button{background:none;border:none;color:#dc2626;font-size:13px;cursor:pointer}
+
+/* Swipe hint */
+.swipe-hint{position:absolute;bottom:80px;left:50%;transform:translateX(-50%);font-size:13px;color:#9ca3af}
+
+/* Done */
+.done-icon{text-align:center;font-size:64px;margin:24px 0}
+.done-title{text-align:center;font-size:24px;font-weight:700}
+.done-summary{text-align:center;color:#666;margin:16px 0;line-height:1.8}
+
+/* Vocab */
+.vocab-search{width:100%;padding:12px 16px;border:1px solid #d1d5db;border-radius:10px;font-size:15px;margin-bottom:16px}
+.vocab-list{background:#fff;border-radius:12px;overflow:hidden}
+.vocab-item{padding:14px 16px;border-bottom:1px solid #f3f4f6;display:flex;justify-content:space-between;align-items:center}
+.vocab-item .w{font-weight:600;color:#1f2937}
+.vocab-item .p{color:#6b7280;font-size:13px;margin-left:8px}
+.vocab-item .m{color:#374151;font-size:14px;margin-left:auto;margin-right:8px}
+.vocab-item .t{font-size:11px;color:#9ca3af;background:#f3f4f6;padding:2px 8px;border-radius:8px}
+
+/* Generate */
+.generate-box{background:#fff;border-radius:12px;padding:20px;margin:16px 0}
+.generate-box textarea{width:100%;min-height:120px;border:1px solid #d1d5db;border-radius:8px;padding:12px;font-size:14px;resize:vertical;font-family:inherit}
+.generate-box .hint{font-size:13px;color:#666;margin-top:8px}
+
+/* Settings */
+.setting-row{background:#fff;border-radius:12px;padding:16px;margin:12px 0;display:flex;justify-content:space-between;align-items:center}
+.setting-row .label{font-weight:500}
+.setting-row .value{color:#666;font-size:14px}
+input[type="number"]{width:80px;padding:8px;border:1px solid #d1d5db;border-radius:8px;font-size:16px;text-align:center}
+input[type="file"]{display:none}
+
+/* Modal */
+.modal{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;z-index:200;padding:20px}
+.modal.show{display:flex}
+.modal-content{background:#fff;border-radius:16px;padding:24px;width:100%;max-width:400px;max-height:80vh;overflow-y:auto}
+.modal-title{font-size:18px;font-weight:600;margin-bottom:16px}
+
+/* Toast */
+.toast{position:fixed;top:80px;left:50%;transform:translateX(-50%) translateY(-20px);background:#1f2937;color:#fff;padding:10px 20px;border-radius:8px;font-size:14px;opacity:0;transition:all .3s;z-index:300;pointer-events:none}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* Empty state */
+.empty{text-align:center;padding:48px 16px;color:#9ca3af}
+.empty .icon{font-size:48px;margin-bottom:16px}
+</style>
+</head>
+<body>
+<div id="app">
+  <nav id="nav">
+    <button class="nav-btn" id="menu-btn" onclick="toggleMenu()">&#9776;</button>
+    <h1>Vocab Daily</h1>
+    <button class="nav-btn" id="back-btn" onclick="showPage('home')" style="display:none">&#10005;</button>
+  </nav>
+
+  <main id="main">
+    <!-- HOME -->
+    <section id="page-home" class="page active">
+      <div class="home-header">
+        <div class="big-num" id="home-remain">0</div>
+        <div class="big-label">今日剩余 / <span id="home-total">500</span></div>
+      </div>
+      <div class="home-progress"><div class="bar" id="home-bar" style="width:0%"></div></div>
+      <button class="btn btn-primary" id="btn-start" onclick="startStudy()">开始学习</button>
+      <button class="btn btn-secondary" onclick="showPage('vocab')">查看词库</button>
+      <button class="btn btn-secondary" onclick="showPage('generate')">主题生成</button>
+      <button class="btn btn-secondary" onclick="showPage('settings')">设置</button>
+
+      <div class="stats-grid">
+        <div class="stat-card"><div class="num" id="stat-total">0</div><div class="label">总词量</div></div>
+        <div class="stat-card"><div class="num" id="stat-known">0</div><div class="label">已掌握</div></div>
+        <div class="stat-card"><div class="num" id="stat-unknown">0</div><div class="label">待学习</div></div>
+        <div class="stat-card"><div class="num" id="stat-days">1</div><div class="label">学习天数</div></div>
+      </div>
+
+      <div style="margin-top:16px">
+        <div style="font-size:14px;color:#666;margin-bottom:8px">主题筛选（关闭的主题不会出现在学习中）</div>
+        <div class="theme-tags" id="theme-tags"></div>
+      </div>
+    </section>
+
+    <!-- STUDY -->
+    <section id="page-study" class="page">
+      <div class="study-info">
+        <span>今日进度: <b id="study-progress">0/500</b></span>
+        <span>已认识: <b id="study-known">0</b> <span class="undo-link" onclick="toggleKnownList()">查看/撤销</span></span>
+      </div>
+      <div id="today-known-list"></div>
+      <div id="study-area">
+        <div class="card-wrap" id="card-wrap"></div>
+        <div class="swipe-hint">右滑 = 认识 &nbsp;|&nbsp; 左滑 = 不认识</div>
+      </div>
+      <div class="study-controls">
+        <button class="btn btn-secondary" onclick="handleUnknown()">不认识 / 下一个</button>
+        <button class="btn btn-success" onclick="handleKnown()">认识</button>
+      </div>
+    </section>
+
+    <!-- DONE -->
+    <section id="page-done" class="page">
+      <div class="done-icon">&#127942;</div>
+      <div class="done-title">今日完成!</div>
+      <div class="done-summary" id="done-summary"></div>
+      <button class="btn btn-primary" onclick="showPage('home')">返回首页</button>
+      <button class="btn btn-secondary" onclick="startStudy()">再来一轮</button>
+    </section>
+
+    <!-- VOCAB -->
+    <section id="page-vocab" class="page">
+      <input type="text" class="vocab-search" id="vocab-search" placeholder="搜索单词..." oninput="renderVocab()">
+      <div class="vocab-list" id="vocab-list"></div>
+    </section>
+
+    <!-- GENERATE -->
+    <section id="page-generate" class="page">
+      <div class="generate-box">
+        <div style="font-weight:600;margin-bottom:12px">第一步：输入主题</div>
+        <input type="text" id="gen-theme" placeholder="例如：军事无人机、航空发动机、商务谈判..." style="width:100%;padding:12px;border:1px solid #d1d5db;border-radius:8px;font-size:15px">
+        <button class="btn btn-primary" style="margin-top:12px" onclick="generatePrompt()">生成提示词</button>
+      </div>
+      <div class="generate-box" id="gen-prompt-box" style="display:none">
+        <div style="font-weight:600;margin-bottom:12px">第二步：复制提示词到任意AI工具</div>
+        <textarea id="gen-prompt" readonly></textarea>
+        <button class="btn btn-secondary" style="margin-top:8px" onclick="copyPrompt()">复制提示词</button>
+      </div>
+      <div class="generate-box" id="gen-result-box" style="display:none">
+        <div style="font-weight:600;margin-bottom:12px">第三步：粘贴AI返回的结果</div>
+        <textarea id="gen-result" placeholder='粘贴AI返回的JSON，格式：[{"word":"apple","phonetic":"/ˈæp.l/","meaning":"苹果","theme":"水果"}]'></textarea>
+        <button class="btn btn-primary" style="margin-top:8px" onclick="parseGenerated()">解析并预览</button>
+      </div>
+      <div class="generate-box" id="gen-preview-box" style="display:none">
+        <div style="font-weight:600;margin-bottom:12px">预览新单词（<span id="gen-count">0</span>个）</div>
+        <div class="vocab-list" id="gen-preview-list" style="max-height:300px;overflow-y:auto"></div>
+        <button class="btn btn-success" style="margin-top:12px" onclick="importGenerated()">确认导入</button>
+      </div>
+    </section>
+
+    <!-- SETTINGS -->
+    <section id="page-settings" class="page">
+      <div class="setting-row">
+        <div>
+          <div class="label">每日目标</div>
+          <div class="value">每天学习的单词数量</div>
+        </div>
+        <input type="number" id="setting-daily" value="500" min="10" max="1000" step="10" onchange="saveSettings()">
+      </div>
+      <div class="setting-row">
+        <div>
+          <div class="label">导出备份</div>
+          <div class="value">下载所有词库和学习进度</div>
+        </div>
+        <button class="btn btn-secondary" style="width:auto;padding:10px 20px;font-size:14px" onclick="exportData()">导出</button>
+      </div>
+      <div class="setting-row">
+        <div>
+          <div class="label">导入备份</div>
+          <div class="value">从文件恢复数据</div>
+        </div>
+        <button class="btn btn-secondary" style="width:auto;padding:10px 20px;font-size:14px" onclick="document.getElementById('import-file').click()">导入</button>
+        <input type="file" id="import-file" accept=".json" onchange="importData(this)">
+      </div>
+      <div class="setting-row">
+        <div>
+          <div class="label">重置进度</div>
+          <div class="value">清除所有学习记录（保留词库）</div>
+        </div>
+        <button class="btn btn-danger" style="width:auto;padding:10px 20px;font-size:14px" onclick="resetProgress()">重置</button>
+      </div>
+      <div class="setting-row">
+        <div>
+          <div class="label">清空词库</div>
+          <div class="value">删除所有单词（不可逆）</div>
+        </div>
+        <button class="btn btn-danger" style="width:auto;padding:10px 20px;font-size:14px" onclick="clearAll()">清空</button>
+      </div>
+    </section>
+  </main>
+</div>
+
+<div class="modal" id="modal">
+  <div class="modal-content">
+    <div class="modal-title" id="modal-title">提示</div>
+    <div id="modal-body"></div>
+    <button class="btn btn-primary" style="margin-top:16px" onclick="closeModal()">确定</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ==================== 内置词库 ====================
+const BUILT_IN_VOCAB = [
+  // 超市购物
+  {id:'s1',word:'supermarket',phonetic:'/ˈsuː.pɚː.ket/',meaning:'超市',theme:'超市购物'},
+  {id:'s2',word:'cart',phonetic:'/kɑːrt/',meaning:'购物车',theme:'超市购物'},
+  {id:'s3',word:'checkout',phonetic:'/ˈtʃek.aʊt/',meaning:'收银台',theme:'超市购物'},
+  {id:'s4',word:'receipt',phonetic:'/rɪˈsiːt/',meaning:'收据',theme:'超市购物'},
+  {id:'s5',word:'discount',phonetic:'/ˈdɪs.kaʊnt/',meaning:'折扣',theme:'超市购物'},
+  {id:'s6',word:'coupon',phonetic:'/ˈkuː.pɑːn/',meaning:'优惠券',theme:'超市购物'},
+  {id:'s7',word:'cashier',phonetic:'/kæˈʃɪər/',meaning:'收银员',theme:'超市购物'},
+  {id:'s8',word:'shelf',phonetic:'/ʃelf/',meaning:'货架',theme:'超市购物'},
+  {id:'s9',word:'aisle',phonetic:'/aɪl/',meaning:'走廊',theme:'超市购物'},
+  {id:'s10',word:'bargain',phonetic:'/ˈbɑːr.ɡɪn/',meaning:'便宜货',theme:'超市购物'},
+  {id:'s11',word:'dairy',phonetic:'/ˈder.i/',meaning:'乳制品',theme:'超市购物'},
+  {id:'s12',word:'bakery',phonetic:'/ˈbeɪ.kər.i/',meaning:'烘焙区',theme:'超市购物'},
+  {id:'s13',word:'produce',phonetic:'/ˈprɑː.duːs/',meaning:'蔬果区',theme:'超市购物'},
+  {id:'s14',word:'frozen',phonetic:'/ˈfroʊ.zən/',meaning:'冷冻的',theme:'超市购物'},
+  {id:'s15',word:'organic',phonetic:'/ɔːrˈɡænɪk/',meaning:'有机的',theme:'超市购物'},
+  {id:'s16',word:'expiration',phonetic:'/ˈek.spɪˈreɪ.ʃən/',meaning:'过期',theme:'超市购物'},
+  {id:'s17',word:'bulk',phonetic:'/bʌlk/',meaning:'大量',theme:'超市购物'},
+  {id:'s18',word:'refund',phonetic:'/ˈriː.fʌnd/',meaning:'退款',theme:'超市购物'},
+  {id:'s19',word:'membership',phonetic:'/ˈmem.bɚː.ʃɪp/',meaning:'会员',theme:'超市购物'},
+  {id:'s20',word:'loyalty',phonetic:'/ˈlɔɪ.əl.ti/',meaning:'忠诚度',theme:'超市购物'},
+  {id:'s21',word:'brand',phonetic:'/brænd/',meaning:'品牌',theme:'超市购物'},
+  {id:'s22',word:'packaging',phonetic:'/ˈpæk.ɪ.dʒɪŋ/',meaning:'包装',theme:'超市购物'},
+  {id:'s23',word:'nutrition',phonetic:'/nuːˈtrɪʃ.ən/',meaning:'营养',theme:'超市购物'},
+  {id:'s24',word:'calorie',phonetic:'/ˈkæl.ər.i/',meaning:'卡路里',theme:'超市购物'},
+  {id:'s25',word:'ingredient',phonetic:'/ɪnˈɡriː.di.ənt/',meaning:'成分',theme:'超市购物'},
+  {id:'s26',word:'cereal',phonetic:'/ˈsɪr.i.əl/',meaning:'谷物',theme:'超市购物'},
+  {id:'s27',word:'beverage',phonetic:'/ˈbev.ər.ɪdʒ/',meaning:'饮料',theme:'超市购物'},
+  {id:'s28',word:'condiment',phonetic:'/ˈkɑːn.dɪ.mənt/',meaning:'调味品',theme:'超市购物'},
+  {id:'s29',word:'deli',phonetic:'/ˈdel.i/',meaning:'熟食区',theme:'超市购物'},
+  {id:'s30',word:'sample',phonetic:'/ˈsæm.pəl/',meaning:'试吃',theme:'超市购物'},
+  // 厨房烹饪
+  {id:'k1',word:'recipe',phonetic:'/ˈres.ɪ.pi/',meaning:'食谱',theme:'厨房烹饪'},
+  {id:'k2',word:'ingredient',phonetic:'/ɪnˈɡriː.di.ənt/',meaning:'原料',theme:'厨房烹饪'},
+  {id:'k3',word:'utensil',phonetic:'/juːˈten.sɪl/',meaning:'厨具',theme:'厨房烹饪'},
+  {id:'k4',word:'appliance',phonetic:'/əˈplaɪ.əns/',meaning:'家电',theme:'厨房烹饪'},
+  {id:'k5',word:'chop',phonetic:'/tʃɑːp/',meaning:'切碎',theme:'厨房烹饪'},
+  {id:'k6',word:'slice',phonetic:'/slaɪs/',meaning:'切片',theme:'厨房烹饪'},
+  {id:'k7',word:'dice',phonetic:'/daɪs/',meaning:'切丁',theme:'厨房烹饪'},
+  {id:'k8',word:'mince',phonetic:'/mɪns/',meaning:'剁碎/绞碎',theme:'厨房烹饪'},
+  {id:'k9',word:'peel',phonetic:'/piːl/',meaning:'削皮',theme:'厨房烹饪'},
+  {id:'k10',word:'grate',phonetic:'/ɡreɪt/',meaning:'擦丝',theme:'厨房烹饪'},
+  {id:'k11',word:'whisk',phonetic:'/wɪsk/',meaning:'拌勺',theme:'厨房烹饪'},
+  {id:'k12',word:'knead',phonetic:'/niːd/',meaning:'揉面',theme:'厨房烹饪'},
+  {id:'k13',word:'simmer',phonetic:'/ˈsɪm.ɚː/',meaning:'小火熬',theme:'厨房烹饪'},
+  {id:'k14',word:'boil',phonetic:'/bɔɪl/',meaning:'煮沸',theme:'厨房烹饪'},
+  {id:'k15',word:'fry',phonetic:'/fraɪ/',meaning:'油炸',theme:'厨房烹饪'},
+  {id:'k16',word:'steam',phonetic:'/stiːm/',meaning:'蒸',theme:'厨房烹饪'},
+  {id:'k17',word:'roast',phonetic:'/roʊst/',meaning:'烤',theme:'厨房烹饪'},
+  {id:'k18',word:'bake',phonetic:'/beɪk/',meaning:'烘焙',theme:'厨房烹饪'},
+  {id:'k19',word:'grill',phonetic:'/ɡrɪl/',meaning:'烧烤',theme:'厨房烹饪'},
+  {id:'k20',word:'seasoning',phonetic:'/ˈsiː.zənɪŋ/',meaning:'调料',theme:'厨房烹饪'},
+  {id:'k21',word:'spicy',phonetic:'/ˈspaɪ.si/',meaning:'辣的',theme:'厨房烹饪'},
+  {id:'k22',word:'sour',phonetic:'/ˈsaʊɚ/',meaning:'酸的',theme:'厨房烹饪'},
+  {id:'k23',word:'bitter',phonetic:'/ˈbɪt.ɚː/',meaning:'苦的',theme:'厨房烹饪'},
+  {id:'k24',word:'tender',phonetic:'/ˈten.dɚː/',meaning:'嫩的',theme:'厨房烹饪'},
+  {id:'k25',word:'crispy',phonetic:'/ˈkrɪs.pi/',meaning:'脆的',theme:'厨房烹饪'},
+  {id:'k26',word:'marinate',phonetic:'/ˈmer.ɪ.neɪt/',meaning:'腌制',theme:'厨房烹饪'},
+  {id:'k27',word:'drain',phonetic:'/dreɪn/',meaning:'滤干',theme:'厨房烹饪'},
+  {id:'k28',word:'pour',phonetic:'/pɔːr/',meaning:'倒',theme:'厨房烹饪'},
+  {id:'k29',word:'sprinkle',phonetic:'/ˈsprɪŋ.kəl/',meaning:'撒',theme:'厨房烹饪'},
+  {id:'k30',word:'stir',phonetic:'/stɚː/',meaning:'搅拌',theme:'厨房烹饪'},
+  // 餐厅点餐
+  {id:'r1',word:'menu',phonetic:'/ˈmen.juː/',meaning:'菜单',theme:'餐厅点餐'},
+  {id:'r2',word:'appetizer',phonetic:'/ˈæp.ɪ.taɪ.zɚː/',meaning:'开胃菜',theme:'餐厅点餐'},
+  {id:'r3',word:'entree',phonetic:'/ˈɑːn.treɪ/',meaning:'主菜',theme:'餐厅点餐'},
+  {id:'r4',word:'dessert',phonetic:'/dɪˈzɚːt/',meaning:'甜品',theme:'餐厅点餐'},
+  {id:'r5',word:'beverage',phonetic:'/ˈbev.ər.ɪdʒ/',meaning:'饮品',theme:'餐厅点餐'},
+  {id:'r6',word:'reservation',phonetic:'/ˈrez.ɚˀveɪ.ʃən/',meaning:'预定',theme:'餐厅点餐'},
+  {id:'r7',word:'waiter',phonetic:'/ˈweɪ.tɚː/',meaning:'服务员',theme:'餐厅点餐'},
+  {id:'r8',word:'bill',phonetic:'/bɪl/',meaning:'账单',theme:'餐厅点餐'},
+  {id:'r9',word:'tip',phonetic:'/tɪp/',meaning:'小费',theme:'餐厅点餐'},
+  {id:'r10',word:'course',phonetic:'/kɔːrs/',meaning:'一道菜',theme:'餐厅点餐'},
+  {id:'r11',word:'serving',phonetic:'/ˈsɚː.vɪŋ/',meaning:'份量',theme:'餐厅点餐'},
+  {id:'r12',word:'cuisine',phonetic:'/kwɪˈziːn/',meaning:'料理',theme:'餐厅点餐'},
+  {id:'r13',word:'buffet',phonetic:'/bʊˈfeɪ/',meaning:'自助餐',theme:'餐厅点餐'},
+  {id:'r14',word:'alacarte',phonetic:'/ˈæl.əˈkɑːrt/',meaning:'单点',theme:'餐厅点餐'},
+  {id:'r15',word:'special',phonetic:'/ˈspeʃ.əl/',meaning:'特色菜',theme:'餐厅点餐'},
+  {id:'r16',word:'recommend',phonetic:'/ˈrek.əˀmend/',meaning:'推荐',theme:'餐厅点餐'},
+  {id:'r17',word:'allergic',phonetic:'/əˈlɚː.dʒɪk/',meaning:'过敏的',theme:'餐厅点餐'},
+  {id:'r18',word:'vegetarian',phonetic:'/ˈvedʒ.ɪˈter.i.ən/',meaning:'素食者',theme:'餐厅点餐'},
+  {id:'r19',word:'rare',phonetic:'/rer/',meaning:'三分熟',theme:'餐厅点餐'},
+  {id:'r20',word:'medium',phonetic:'/ˈmiː.di.əm/',meaning:'五分熟',theme:'餐厅点餐'},
+  {id:'r21',word:'well-done',phonetic:'/ˈwelˈdʌn/',meaning:'全熟',theme:'餐厅点餐'},
+  {id:'r22',word:'napkin',phonetic:'/ˈnæp.kɪn/',meaning:'餐巾',theme:'餐厅点餐'},
+  {id:'r23',word:'pitcher',phonetic:'/ˈpɪtʃ.ɚː/',meaning:'水壶',theme:'餐厅点餐'},
+  {id:'r24',word:'tab',phonetic:'/tæb/',meaning:'账单',theme:'餐厅点餐'},
+  {id:'r25',word:'doggiebag',phonetic:'/ˈdɒɪ.i bæɡ/',meaning:'打包袋',theme:'餐厅点餐'},
+  // 交通出行
+  {id:'t1',word:'intersection',phonetic:'/ˈɪn.tɚˀsek.ʃən/',meaning:'路口',theme:'交通出行'},
+  {id:'t2',word:'pedestrian',phonetic:'/pəˈdes.tri.ən/',meaning:'行人',theme:'交通出行'},
+  {id:'t3',word:'highway',phonetic:'/ˈhaɪ.weɪ/',meaning:'高速公路',theme:'交通出行'},
+  {id:'t4',word:'interstate',phonetic:'/ˈɪn.tɚˀsteɪt/',meaning:'州际公路',theme:'交通出行'},
+  {id:'t5',word:'toll',phonetic:'/toʊl/',meaning:'过路费',theme:'交通出行'},
+  {id:'t6',word:'detour',phonetic:'/ˈdiː.tʊɚ/',meaning:'绕行',theme:'交通出行'},
+  {id:'t7',word:'traffic',phonetic:'/ˈtræf.ɪk/',meaning:'交通',theme:'交通出行'},
+  {id:'t8',word:'congestion',phonetic:'/kənˈdʒes.tʃən/',meaning:'拥堵',theme:'交通出行'},
+  {id:'t9',word:'carpool',phonetic:'/ˈkɑːr.puːl/',meaning:'拼车',theme:'交通出行'},
+  {id:'t10',word:'commute',phonetic:'/kəˈmjuːt/',meaning:'上下班通勤',theme:'交通出行'},
+  {id:'t11',word:'subway',phonetic:'/ˈsʌb.weɪ/',meaning:'地铁',theme:'交通出行'},
+  {id:'t12',word:'platform',phonetic:'/ˈplæt.fɔːrm/',meaning:'月台',theme:'交通出行'},
+  {id:'t13',word:'transfer',phonetic:'/ˈtræns.fɚː/',meaning:'转乘',theme:'交通出行'},
+  {id:'t14',word:'terminal',phonetic:'/ˈtɚː.mɪ.nəl/',meaning:'终端',theme:'交通出行'},
+  {id:'t15',word:'departure',phonetic:'/dɪˈpɑːr.tʃɚː/',meaning:'出发',theme:'交通出行'},
+  {id:'t16',word:'arrival',phonetic:'/əˈraɪ.vəl/',meaning:'到达',theme:'交通出行'},
+  {id:'t17',word:'delay',phonetic:'/dɪˈleɪ/',meaning:'延误',theme:'交通出行'},
+  {id:'t18',word:'boarding',phonetic:'/ˈbɔːr.dɪŋ/',meaning:'登机/车',theme:'交通出行'},
+  {id:'t19',word:'seatbelt',phonetic:'/ˈsiːt.belt/',meaning:'安全带',theme:'交通出行'},
+  {id:'t20',word:'speedlimit',phonetic:'/ˈspiːdˈlɪm.ɪt/',meaning:'限速',theme:'交通出行'},
+  {id:'t21',word:'parking',phonetic:'/ˈpɑːr.kɪŋ/',meaning:'停车',theme:'交通出行'},
+  {id:'t22',word:'garage',phonetic:'/ɡəˈrɑːʒ/',meaning:'车库',theme:'交通出行'},
+  {id:'t23',word:'engine',phonetic:'/ˈen.dʒɪn/',meaning:'发动机',theme:'交通出行'},
+  {id:'t24',word:'tire',phonetic:'/ˈtaɪɚ/',meaning:'轮胎',theme:'交通出行'},
+  {id:'t25',word:'brake',phonetic:'/breɪk/',meaning:'刹车',theme:'交通出行'},
+  // 职场商务
+  {id:'w1',word:'deadline',phonetic:'/ˈded.laɪn/',meaning:'截止日期',theme:'职场商务'},
+  {id:'w2',word:'schedule',phonetic:'/ˈskedʒ.uːl/',meaning:'日程表',theme:'职场商务'},
+  {id:'w3',word:'meeting',phonetic:'/ˈmiː.t̬ɪŋ/',meaning:'会议',theme:'职场商务'},
+  {id:'w4',word:'proposal',phonetic:'/prəˈpoʊ.zəl/',meaning:'提案',theme:'职场商务'},
+  {id:'w5',word:'budget',phonetic:'/ˈbʌdʒ.ɪt/',meaning:'预算',theme:'职场商务'},
+  {id:'w6',word:'client',phonetic:'/ˈklaɪ.ənt/',meaning:'客户',theme:'职场商务'},
+  {id:'w7',word:'colleague',phonetic:'/ˈkɑː.liːɡ/',meaning:'同事',theme:'职场商务'},
+  {id:'w8',word:'salary',phonetic:'/ˈsæl.ɚ.i/',meaning:'薪水',theme:'职场商务'},
+  {id:'w9',word:'promotion',phonetic:'/prəˈmoʊ.ʃən/',meaning:'晋升',theme:'职场商务'},
+  {id:'w10',word:'interview',phonetic:'/ˈɪn.t̬ɚ.vjuː/',meaning:'面试',theme:'职场商务'},
+  {id:'w11',word:'contract',phonetic:'/ˈkɑːn.trækt/',meaning:'合同',theme:'职场商务'},
+  {id:'w12',word:'profit',phonetic:'/ˈprɑː.fɪt/',meaning:'利润',theme:'职场商务'},
+  {id:'w13',word:'expense',phonetic:'/ɪkˈspens/',meaning:'费用',theme:'职场商务'},
+  {id:'w14',word:'strategy',phonetic:'/ˈstræt.ə.dʒi/',meaning:'策略',theme:'职场商务'},
+  {id:'w15',word:'negotiate',phonetic:'/nəˈɡoʊ.ʃi.eɪt/',meaning:'谈判',theme:'职场商务'},
+  {id:'w16',word:'overtime',phonetic:'/ˈoʊ.vɚ.taɪm/',meaning:'加班',theme:'职场商务'},
+  {id:'w17',word:'resign',phonetic:'/rɪˈzaɪn/',meaning:'辞职',theme:'职场商务'},
+  {id:'w18',word:'quarter',phonetic:'/ˈkwɔːr.t̬ɚ/',meaning:'季度',theme:'职场商务'},
+  {id:'w19',word:'revenue',phonetic:'/ˈrev.ə.nuː/',meaning:'收入',theme:'职场商务'},
+  {id:'w20',word:'candidate',phonetic:'/ˈkæn.dɪ.deɪt/',meaning:'候选人',theme:'职场商务'},
+  {id:'w21',word:'feedback',phonetic:'/ˈfiːd.bæk/',meaning:'反馈',theme:'职场商务'},
+  {id:'w22',word:'deadline',phonetic:'/ˈded.laɪn/',meaning:'截止日期',theme:'职场商务'},
+  {id:'w23',word:'report',phonetic:'/rɪˈpɔːrt/',meaning:'报告',theme:'职场商务'},
+  {id:'w24',word:'target',phonetic:'/ˈtɑːr.ɡɪt/',meaning:'目标',theme:'职场商务'},
+  {id:'w25',word:'benefit',phonetic:'/ˈben.ɪ.fɪt/',meaning:'福利',theme:'职场商务'},
+  // 日常生活
+  {id:'d1',word:'alarm',phonetic:'/əˈlɑːrm/',meaning:'闹钟',theme:'日常生活'},
+  {id:'d2',word:'appointment',phonetic:'/əˈpɔɪnt.mənt/',meaning:'约会',theme:'日常生活'},
+  {id:'d3',word:'brush',phonetic:'/brʌʃ/',meaning:'刷子',theme:'日常生活'},
+  {id:'d4',word:'calendar',phonetic:'/ˈkæl.ən.dɚ/',meaning:'日历',theme:'日常生活'},
+  {id:'d5',word:'comb',phonetic:'/koʊm/',meaning:'梳子',theme:'日常生活'},
+  {id:'d6',word:'laundry',phonetic:'/ˈlɑːn.drɪ/',meaning:'洗衣',theme:'日常生活'},
+  {id:'d7',word:'mirror',phonetic:'/ˈmɪr.ɚ/',meaning:'镜子',theme:'日常生活'},
+  {id:'d8',word:'nap',phonetic:'/næp/',meaning:'小睡',theme:'日常生活'},
+  {id:'d9',word:'pillow',phonetic:'/ˈpɪl.oʊ/',meaning:'枕头',theme:'日常生活'},
+  {id:'d10',word:'razor',phonetic:'/ˈreɪ.zɚ/',meaning:'剃须刀',theme:'日常生活'},
+  {id:'d11',word:'shower',phonetic:'/ˈʃaʊ.ɚ/',meaning:'淋浴',theme:'日常生活'},
+  {id:'d12',word:'sink',phonetic:'/sɪŋk/',meaning:'水槽',theme:'日常生活'},
+  {id:'d13',word:'soap',phonetic:'/soʊp/',meaning:'肥皂',theme:'日常生活'},
+  {id:'d14',word:'toothpaste',phonetic:'/ˈtuːθ.peɪst/',meaning:'牙膏',theme:'日常生活'},
+  {id:'d15',word:'towel',phonetic:'/ˈtaʊ.əl/',meaning:'毛巾',theme:'日常生活'},
+  {id:'d16',word:'umbrella',phonetic:'/ʌmˈbrel.ə/',meaning:'雨伞',theme:'日常生活'},
+  {id:'d17',word:'wallet',phonetic:'/ˈwɑː.lɪt/',meaning:'钱包',theme:'日常生活'},
+  {id:'d18',word:'key',phonetic:'/kiː/',meaning:'钥匙',theme:'日常生活'},
+  {id:'d19',word:'glasses',phonetic:'/ˈɡlæs.ɪz/',meaning:'眼镜',theme:'日常生活'},
+  {id:'d20',word:'watch',phonetic:'/wɑːtʃ/',meaning:'手表',theme:'日常生活'},
+  {id:'d21',word:'phone',phonetic:'/foʊn/',meaning:'电话',theme:'日常生活'},
+  {id:'d22',word:'charger',phonetic:'/ˈtʃɑːr.dʒɚ/',meaning:'充电器',theme:'日常生活'},
+  {id:'d23',word:'wallet',phonetic:'/ˈwɑː.lɪt/',meaning:'钱包',theme:'日常生活'},
+  {id:'d24',word:'bag',phonetic:'/bæɡ/',meaning:'包',theme:'日常生活'},
+  {id:'d25',word:'bottle',phonetic:'/ˈbɑː.t̬əl/',meaning:'瓶子',theme:'日常生活'},
+  {id:'d26',word:'trash',phonetic:'/træʃ/',meaning:'垃圾',theme:'日常生活'},
+  {id:'d27',word:'broom',phonetic:'/bruːm/',meaning:'扫帚',theme:'日常生活'},
+  {id:'d28',word:'mop',phonetic:'/mɑːp/',meaning:'拖把',theme:'日常生活'},
+  {id:'d29',word:'dust',phonetic:'/dʌst/',meaning:'灰尘',theme:'日常生活'},
+  {id:'d30',word:'vacuum',phonetic:'/ˈvæk.juːm/',meaning:'吸尘器',theme:'日常生活'},
+  // 军事术语
+  {id:'m1',word:'military',phonetic:'/ˈmɪl.ə.ter.i/',meaning:'军事的',theme:'军事术语'},
+  {id:'m2',word:'army',phonetic:'/ˈɑːr.mi/',meaning:'陆军',theme:'军事术语'},
+  {id:'m3',word:'navy',phonetic:'/ˈneɪ.vi/',meaning:'海军',theme:'军事术语'},
+  {id:'m4',word:'airforce',phonetic:'/ˈer.fɔːrs/',meaning:'空军',theme:'军事术语'},
+  {id:'m5',word:'soldier',phonetic:'/ˈsoʊl.dʒɚ/',meaning:'士兵',theme:'军事术语'},
+  {id:'m6',word:'weapon',phonetic:'/ˈwep.ən/',meaning:'武器',theme:'军事术语'},
+  {id:'m7',word:'tank',phonetic:'/tæŋk/',meaning:'坦克',theme:'军事术语'},
+  {id:'m8',word:'missile',phonetic:'/ˈmɪs.əl/',meaning:'导弹',theme:'军事术语'},
+  {id:'m9',word:'radar',phonetic:'/ˈreɪ.dɑːr/',meaning:'雷达',theme:'军事术语'},
+  {id:'m10',word:'combat',phonetic:'/ˈkɑːm.bæt/',meaning:'战斗',theme:'军事术语'},
+  {id:'m11',word:'tactics',phonetic:'/ˈtæk.tɪks/',meaning:'战术',theme:'军事术语'},
+  {id:'m12',word:'strategy',phonetic:'/ˈstræt.ə.dʒi/',meaning:'战略',theme:'军事术语'},
+  {id:'m13',word:'defense',phonetic:'/dɪˈfens/',meaning:'防御',theme:'军事术语'},
+  {id:'m14',word:'offense',phonetic:'/əˈfens/',meaning:'进攻',theme:'军事术语'},
+  {id:'m15',word:'reconnaissance',phonetic:'/rɪˈkɑː.nə.zəns/',meaning:'侦察',theme:'军事术语'},
+  {id:'m16',word:'artillery',phonetic:'/ɑːrˈtɪl.ɚ.i/',meaning:'火炮',theme:'军事术语'},
+  {id:'m17',word:'infantry',phonetic:'/ˈɪn.fən.tri/',meaning:'步兵',theme:'军事术语'},
+  {id:'m18',word:'battalion',phonetic:'/bəˈtæl.jən/',meaning:'营',theme:'军事术语'},
+  {id:'m19',word:'regiment',phonetic:'/ˈredʒ.ɪ.mənt/',meaning:'团',theme:'军事术语'},
+  {id:'m20',word:'brigade',phonetic:'/brɪˈɡeɪd/',meaning:'旅',theme:'军事术语'},
+  {id:'m21',word:'division',phonetic:'/dɪˈvɪʒ.ən/',meaning:'师',theme:'军事术语'},
+  {id:'m22',word:'platoon',phonetic:'/pləˈtuːn/',meaning:'排',theme:'军事术语'},
+  {id:'m23',word:'squad',phonetic:'/skwɑːd/',meaning:'班/小队',theme:'军事术语'},
+  {id:'m24',word:'casualty',phonetic:'/ˈkæʒ.uː.əl.ti/',meaning:'伤亡',theme:'军事术语'},
+  {id:'m25',word:'camouflage',phonetic:'/ˈkæm.ə.flɑːʒ/',meaning:'伪装',theme:'军事术语'},
+  {id:'m26',word:'fortress',phonetic:'/ˈfɔːr.trəs/',meaning:'堡垒',theme:'军事术语'},
+  {id:'m27',word:'grenade',phonetic:'/ɡrɪˈneɪd/',meaning:'手榴弹',theme:'军事术语'},
+  {id:'m28',word:'rifle',phonetic:'/ˈraɪ.fəl/',meaning:'步枪',theme:'军事术语'},
+  {id:'m29',word:'submarine',phonetic:'/ˈsʌb.mɚ.iːn/',meaning:'潜艇',theme:'军事术语'},
+  {id:'m30',word:'destroyer',phonetic:'/dɪˈstrɔɪ.ɚ/',meaning:'驱逐舰',theme:'军事术语'},
+  {id:'m31',word:'cruiser',phonetic:'/ˈkruː.zɚ/',meaning:'巡洋舰',theme:'军事术语'},
+  {id:'m32',word:'carrier',phonetic:'/ˈker.i.ɚ/',meaning:'航母',theme:'军事术语'},
+  {id:'m33',word:'fighter',phonetic:'/ˈfaɪ.t̬ɚ/',meaning:'战斗机',theme:'军事术语'},
+  {id:'m34',word:'bomber',phonetic:'/ˈbɑː.mɚ/',meaning:'轰炸机',theme:'军事术语'},
+  {id:'m35',word:'helicopter',phonetic:'/ˈhel.ɪ.kɑːp.tɚ/',meaning:'直升机',theme:'军事术语'},
+  {id:'m36',word:'pilot',phonetic:'/ˈpaɪ.lət/',meaning:'飞行员',theme:'军事术语'},
+  {id:'m37',word:'helmet',phonetic:'/ˈhel.mɪt/',meaning:'头盔',theme:'军事术语'},
+  {id:'m38',word:'armor',phonetic:'/ˈɑːr.mɚ/',meaning:'装甲',theme:'军事术语'},
+  {id:'m39',word:'rocket',phonetic:'/ˈrɑː.kɪt/',meaning:'火箭',theme:'军事术语'},
+  {id:'m40',word:'torpedo',phonetic:'/tɔːrˈpiː.doʊ/',meaning:'鱼雷',theme:'军事术语'},
+  // 无人机技术
+  {id:'u1',word:'drone',phonetic:'/droʊn/',meaning:'无人机',theme:'无人机技术'},
+  {id:'u2',word:'UAV',phonetic:'/ˌjuː.eɪˈviː/',meaning:'无人驾驶飞行器',theme:'无人机技术'},
+  {id:'u3',word:'quadcopter',phonetic:'/ˈkwɑːd.kɑːp.tɚ/',meaning:'四旋翼',theme:'无人机技术'},
+  {id:'u4',word:'rotor',phonetic:'/ˈroʊ.t̬ɚ/',meaning:'旋翼',theme:'无人机技术'},
+  {id:'u5',word:'propeller',phonetic:'/prəˈpel.ɚ/',meaning:'螺旋桨',theme:'无人机技术'},
+  {id:'u6',word:'gimbal',phonetic:'/ˈɡɪm.bəl/',meaning:'云台',theme:'无人机技术'},
+  {id:'u7',word:'payload',phonetic:'/ˈpeɪ.loʊd/',meaning:'有效载荷',theme:'无人机技术'},
+  {id:'u8',word:'altitude',phonetic:'/ˈæl.t̬ɪ.tuːd/',meaning:'高度',theme:'无人机技术'},
+  {id:'u9',word:'hover',phonetic:'/ˈhʌv.ɚ/',meaning:'悬停',theme:'无人机技术'},
+  {id:'u10',word:'waypoint',phonetic:'/ˈweɪ.pɔɪnt/',meaning:'航点',theme:'无人机技术'},
+  {id:'u11',word:'telemetry',phonetic:'/təˈlem.ə.tri/',meaning:'遥测',theme:'无人机技术'},
+  {id:'u12',word:'transmitter',phonetic:'/trænsˈmɪt.ɚ/',meaning:'发射器',theme:'无人机技术'},
+  {id:'u13',word:'receiver',phonetic:'/rɪˈsiː.vɚ/',meaning:'接收器',theme:'无人机技术'},
+  {id:'u14',word:'controller',phonetic:'/kənˈtroʊ.lɚ/',meaning:'遥控器',theme:'无人机技术'},
+  {id:'u15',word:'battery',phonetic:'/ˈbæt.ɚ.i/',meaning:'电池',theme:'无人机技术'},
+  {id:'u16',word:'lithium',phonetic:'/ˈlɪθ.i.əm/',meaning:'锂',theme:'无人机技术'},
+  {id:'u17',word:'sensor',phonetic:'/ˈsen.sɚ/',meaning:'传感器',theme:'无人机技术'},
+  {id:'u18',word:'GPS',phonetic:'/ˌdʒiː.piːˈes/',meaning:'全球定位系统',theme:'无人机技术'},
+  {id:'u19',word:'camera',phonetic:'/ˈkæm.ɚ.ə/',meaning:'相机',theme:'无人机技术'},
+  {id:'u20',word:'infrared',phonetic:'/ˌɪn.frəˈred/',meaning:'红外线',theme:'无人机技术'},
+  {id:'u21',word:'surveillance',phonetic:'/sɚˈveɪ.ləns/',meaning:'监视',theme:'无人机技术'},
+  {id:'u22',word:'mapping',phonetic:'/ˈmæp.ɪŋ/',meaning:'测绘',theme:'无人机技术'},
+  {id:'u23',word:'autonomous',phonetic:'/ɑːˈtɑː.nə.məs/',meaning:'自主的',theme:'无人机技术'},
+  {id:'u24',word:'flight',phonetic:'/flaɪt/',meaning:'飞行',theme:'无人机技术'},
+  {id:'u25',word:'landing',phonetic:'/ˈlæn.dɪŋ/',meaning:'降落',theme:'无人机技术'},
+  {id:'u26',word:'range',phonetic:'/reɪndʒ/',meaning:'航程',theme:'无人机技术'},
+  {id:'u27',word:'aerial',phonetic:'/ˈer.i.əl/',meaning:'空中的',theme:'无人机技术'},
+  {id:'u28',word:'throttle',phonetic:'/ˈθrɑː.t̬əl/',meaning:'油门',theme:'无人机技术'},
+  {id:'u29',word:'monitoring',phonetic:'/ˈmɑː.nɪ.t̬ɚ.ɪŋ/',meaning:'监控',theme:'无人机技术'},
+  {id:'u30',word:'racing',phonetic:'/ˈreɪ.sɪŋ/',meaning:'竞速',theme:'无人机技术'},
+  // 科技数码
+  {id:'te1',word:'computer',phonetic:'/kəmˈpjuː.t̬ɚ/',meaning:'电脑',theme:'科技数码'},
+  {id:'te2',word:'software',phonetic:'/ˈsɑːft.wer/',meaning:'软件',theme:'科技数码'},
+  {id:'te3',word:'hardware',phonetic:'/ˈhɑːrd.wer/',meaning:'硬件',theme:'科技数码'},
+  {id:'te4',word:'internet',phonetic:'/ˈɪn.t̬ɚ.net/',meaning:'互联网',theme:'科技数码'},
+  {id:'te5',word:'website',phonetic:'/ˈweb.saɪt/',meaning:'网站',theme:'科技数码'},
+  {id:'te6',word:'password',phonetic:'/ˈpæs.wɚːd/',meaning:'密码',theme:'科技数码'},
+  {id:'te7',word:'download',phonetic:'/ˈdaʊn.loʊd/',meaning:'下载',theme:'科技数码'},
+  {id:'te8',word:'upload',phonetic:'/ˈʌp.loʊd/',meaning:'上传',theme:'科技数码'},
+  {id:'te9',word:'virus',phonetic:'/ˈvaɪ.rəs/',meaning:'病毒',theme:'科技数码'},
+  {id:'te10',word:'network',phonetic:'/ˈnet.wɚːk/',meaning:'网络',theme:'科技数码'},
+  {id:'te11',word:'algorithm',phonetic:'/ˈæl.ɡɚː.ɪ.ðəm/',meaning:'算法',theme:'科技数码'},
+  {id:'te12',word:'database',phonetic:'/ˈdeɪ.t̬ə.beɪs/',meaning:'数据库',theme:'科技数码'},
+  {id:'te13',word:'server',phonetic:'/ˈsɚː.vɚ/',meaning:'服务器',theme:'科技数码'},
+  {id:'te14',word:'cloud',phonetic:'/klaʊd/',meaning:'云',theme:'科技数码'},
+  {id:'te15',word:'artificial',phonetic:'/ˌɑːr.t̬əˈfɪʃ.əl/',meaning:'人工智能的',theme:'科技数码'},
+  {id:'te16',word:'robot',phonetic:'/ˈroʊ.bɑːt/',meaning:'机器人',theme:'科技数码'},
+  {id:'te17',word:'screen',phonetic:'/skriːn/',meaning:'屏幕',theme:'科技数码'},
+  {id:'te18',word:'keyboard',phonetic:'/ˈkiː.bɔːrd/',meaning:'键盘',theme:'科技数码'},
+  {id:'te19',word:'mouse',phonetic:'/maʊs/',meaning:'鼠标',theme:'科技数码'},
+  {id:'te20',word:'printer',phonetic:'/ˈprɪn.t̬ɚ/',meaning:'打印机',theme:'科技数码'},
+  {id:'te21',word:'speaker',phonetic:'/ˈspiː.kɚ/',meaning:'扬声器',theme:'科技数码'},
+  {id:'te22',word:'microphone',phonetic:'/ˈmaɪ.krə.foʊn/',meaning:'麦克风',theme:'科技数码'},
+  {id:'te23',word:'bluetooth',phonetic:'/ˈbluː.tuːθ/',meaning:'蓝牙',theme:'科技数码'},
+  {id:'te24',word:'wifi',phonetic:'/ˈwaɪ.faɪ/',meaning:'无线网络',theme:'科技数码'},
+  {id:'te25',word:'pixel',phonetic:'/ˈpɪk.səl/',meaning:'像素',theme:'科技数码'},
+  // 旅游观光
+  {id:'tr1',word:'passport',phonetic:'/ˈpæs.pɔːrt/',meaning:'护照',theme:'旅游观光'},
+  {id:'tr2',word:'visa',phonetic:'/ˈviː.zə/',meaning:'签证',theme:'旅游观光'},
+  {id:'tr3',word:'ticket',phonetic:'/ˈtɪk.ɪt/',meaning:'票',theme:'旅游观光'},
+  {id:'tr4',word:'hotel',phonetic:'/hoʊˈtel/',meaning:'酒店',theme:'旅游观光'},
+  {id:'tr5',word:'suitcase',phonetic:'/ˈsuːt.keɪs/',meaning:'行李箱',theme:'旅游观光'},
+  {id:'tr6',word:'backpack',phonetic:'/ˈbæk.pæk/',meaning:'背包',theme:'旅游观光'},
+  {id:'tr7',word:'guide',phonetic:'/ɡaɪd/',meaning:'导游',theme:'旅游观光'},
+  {id:'tr8',word:'map',phonetic:'/mæp/',meaning:'地图',theme:'旅游观光'},
+  {id:'tr9',word:'souvenir',phonetic:'/ˌsuː.vəˈnɪr/',meaning:'纪念品',theme:'旅游观光'},
+  {id:'tr10',word:'scenery',phonetic:'/ˈsiː.nɚ.i/',meaning:'风景',theme:'旅游观光'},
+  {id:'tr11',word:'landmark',phonetic:'/ˈlænd.mɑːrk/',meaning:'地标',theme:'旅游观光'},
+  {id:'tr12',word:'museum',phonetic:'/mjuːˈziː.əm/',meaning:'博物馆',theme:'旅游观光'},
+  {id:'tr13',word:'temple',phonetic:'/ˈtem.pəl/',meaning:'寺庙',theme:'旅游观光'},
+  {id:'tr14',word:'beach',phonetic:'/biːtʃ/',meaning:'海滩',theme:'旅游观光'},
+  {id:'tr15',word:'mountain',phonetic:'/ˈmaʊn.tən/',meaning:'山',theme:'旅游观光'},
+  {id:'tr16',word:'cruise',phonetic:'/kruːz/',meaning:'游轮',theme:'旅游观光'},
+  {id:'tr17',word:'camp',phonetic:'/kæmp/',meaning:'露营',theme:'旅游观光'},
+  {id:'tr18',word:'hike',phonetic:'/haɪk/',meaning:'徒步',theme:'旅游观光'},
+  {id:'tr19',word:'picnic',phonetic:'/ˈpɪk.nɪk/',meaning:'野餐',theme:'旅游观光'},
+  {id:'tr20',word:'resort',phonetic:'/rɪˈzɔːrt/',meaning:'度假村',theme:'旅游观光'},
+  {id:'tr21',word:'adventure',phonetic:'/ədˈven.tʃɚ/',meaning:'冒险',theme:'旅游观光'},
+  {id:'tr22',word:'explore',phonetic:'/ɪkˈsplɔːr/',meaning:'探索',theme:'旅游观光'},
+  {id:'tr23',word:'route',phonetic:'/ruːt/',meaning:'路线',theme:'旅游观光'},
+  {id:'tr24',word:'destination',phonetic:'/ˌdes.təˈneɪ.ʃən/',meaning:'目的地',theme:'旅游观光'},
+  {id:'tr25',word:'itinerary',phonetic:'/aɪˈtɪn.ɚ.er.i/',meaning:'行程',theme:'旅游观光'},
+  // 体育运动
+  {id:'sp1',word:'soccer',phonetic:'/ˈsɑː.kɚ/',meaning:'足球',theme:'体育运动'},
+  {id:'sp2',word:'basketball',phonetic:'/ˈbæs.kɪt.bɑːl/',meaning:'篮球',theme:'体育运动'},
+  {id:'sp3',word:'tennis',phonetic:'/ˈten.ɪs/',meaning:'网球',theme:'体育运动'},
+  {id:'sp4',word:'swimming',phonetic:'/ˈswɪm.ɪŋ/',meaning:'游泳',theme:'体育运动'},
+  {id:'sp5',word:'running',phonetic:'/ˈrʌn.ɪŋ/',meaning:'跑步',theme:'体育运动'},
+  {id:'sp6',word:'cycling',phonetic:'/ˈsaɪ.klɪŋ/',meaning:'骑行',theme:'体育运动'},
+  {id:'sp7',word:'gym',phonetic:'/dʒɪm/',meaning:'健身房',theme:'体育运动'},
+  {id:'sp8',word:'yoga',phonetic:'/ˈjoʊ.ɡə/',meaning:'瑜伽',theme:'体育运动'},
+  {id:'sp9',word:'marathon',phonetic:'/ˈmer.ə.θɑːn/',meaning:'马拉松',theme:'体育运动'},
+  {id:'sp10',word:'champion',phonetic:'/ˈtʃæm.pi.ən/',meaning:'冠军',theme:'体育运动'},
+  {id:'sp11',word:'referee',phonetic:'/ˌref.ɚˈiː/',meaning:'裁判',theme:'体育运动'},
+  {id:'sp12',word:'stadium',phonetic:'/ˈsteɪ.di.əm/',meaning:'体育场',theme:'体育运动'},
+  {id:'sp13',word:'tournament',phonetic:'/ˈtʊr.nə.mənt/',meaning:'锦标赛',theme:'体育运动'},
+  {id:'sp14',word:'score',phonetic:'/skɔːr/',meaning:'得分',theme:'体育运动'},
+  {id:'sp15',word:'coach',phonetic:'/koʊtʃ/',meaning:'教练',theme:'体育运动'},
+  {id:'sp16',word:'team',phonetic:'/tiːm/',meaning:'队伍',theme:'体育运动'},
+  {id:'sp17',word:'player',phonetic:'/ˈpleɪ.ɚ/',meaning:'运动员',theme:'体育运动'},
+  {id:'sp18',word:'medal',phonetic:'/ˈmed.əl/',meaning:'奖牌',theme:'体育运动'},
+  {id:'sp19',word:'record',phonetic:'/ˈrek.ɚd/',meaning:'纪录',theme:'体育运动'},
+  {id:'sp20',word:'fitness',phonetic:'/ˈfɪt.nəs/',meaning:'健身',theme:'体育运动'},
+  // 医疗健康
+  {id:'h1',word:'doctor',phonetic:'/ˈdɑːk.tɚ/',meaning:'医生',theme:'医疗健康'},
+  {id:'h2',word:'hospital',phonetic:'/ˈhɑːs.pɪ.t̬əl/',meaning:'医院',theme:'医疗健康'},
+  {id:'h3',word:'medicine',phonetic:'/ˈmed.ɪ.sən/',meaning:'药物',theme:'医疗健康'},
+  {id:'h4',word:'symptom',phonetic:'/ˈsɪmp.təm/',meaning:'症状',theme:'医疗健康'},
+  {id:'h5',word:'diagnosis',phonetic:'/ˌdaɪ.əɡˈnoʊ.səs/',meaning:'诊断',theme:'医疗健康'},
+  {id:'h6',word:'prescription',phonetic:'/prɪˈskrɪp.ʃən/',meaning:'处方',theme:'医疗健康'},
+  {id:'h7',word:'surgery',phonetic:'/ˈsɝː.dʒɚ.i/',meaning:'手术',theme:'医疗健康'},
+  {id:'h8',word:'emergency',phonetic:'/ɪˈmɝː.dʒən.si/',meaning:'急诊',theme:'医疗健康'},
+  {id:'h9',word:'ambulance',phonetic:'/ˈæm.bjə.ləns/',meaning:'救护车',theme:'医疗健康'},
+  {id:'h10',word:'patient',phonetic:'/ˈpeɪ.ʃənt/',meaning:'病人',theme:'医疗健康'},
+  {id:'h11',word:'nurse',phonetic:'/nɝːs/',meaning:'护士',theme:'医疗健康'},
+  {id:'h12',word:'fever',phonetic:'/ˈfiː.vɚ/',meaning:'发烧',theme:'医疗健康'},
+  {id:'h13',word:'cough',phonetic:'/kɑːf/',meaning:'咳嗽',theme:'医疗健康'},
+  {id:'h14',word:'headache',phonetic:'/ˈhed.eɪk/',meaning:'头痛',theme:'医疗健康'},
+  {id:'h15',word:'allergy',phonetic:'/ˈæl.ɚ.dʒi/',meaning:'过敏',theme:'医疗健康'},
+  {id:'h16',word:'blood',phonetic:'/blʌd/',meaning:'血液',theme:'医疗健康'},
+  {id:'h17',word:'heartbeat',phonetic:'/ˈhɑːrt.biːt/',meaning:'心跳',theme:'医疗健康'},
+  {id:'h18',word:'vaccine',phonetic:'/vækˈsiːn/',meaning:'疫苗',theme:'医疗健康'},
+  {id:'h19',word:'insurance',phonetic:'/ɪnˈʃʊr.əns/',meaning:'保险',theme:'医疗健康'},
+  {id:'h20',word:'recovery',phonetic:'/rɪˈkʌv.ɚ.i/',meaning:'康复',theme:'医疗健康'},
+  // 金融经济
+  {id:'f1',word:'money',phonetic:'/ˈmʌn.i/',meaning:'钱',theme:'金融经济'},
+  {id:'f2',word:'bank',phonetic:'/bæŋk/',meaning:'银行',theme:'金融经济'},
+  {id:'f3',word:'account',phonetic:'/əˈkaʊnt/',meaning:'账户',theme:'金融经济'},
+  {id:'f4',word:'deposit',phonetic:'/dɪˈpɑːz.ɪt/',meaning:'存款',theme:'金融经济'},
+  {id:'f5',word:'withdraw',phonetic:'/wɪðˈdrɑː/',meaning:'取款',theme:'金融经济'},
+  {id:'f6',word:'loan',phonetic:'/loʊn/',meaning:'贷款',theme:'金融经济'},
+  {id:'f7',word:'mortgage',phonetic:'/ˈmɔːr.ɡɪdʒ/',meaning:'抵押贷款',theme:'金融经济'},
+  {id:'f8',word:'interest',phonetic:'/ˈɪn.trəst/',meaning:'利息',theme:'金融经济'},
+  {id:'f9',word:'invest',phonetic:'/ɪnˈvest/',meaning:'投资',theme:'金融经济'},
+  {id:'f10',word:'stock',phonetic:'/stɑːk/',meaning:'股票',theme:'金融经济'},
+  {id:'f11',word:'bond',phonetic:'/bɑːnd/',meaning:'债券',theme:'金融经济'},
+  {id:'f12',word:'dividend',phonetic:'/ˈdɪv.ɪ.dend/',meaning:'股息',theme:'金融经济'},
+  {id:'f13',word:'tax',phonetic:'/tæks/',meaning:'税',theme:'金融经济'},
+  {id:'f14',word:'inflation',phonetic:'/ɪnˈfleɪ.ʃən/',meaning:'通货膨胀',theme:'金融经济'},
+  {id:'f15',word:'currency',phonetic:'/ˈkɝː.ən.si/',meaning:'货币',theme:'金融经济'},
+  {id:'f16',word:'exchange',phonetic:'/ɪksˈtʃeɪndʒ/',meaning:'兑换',theme:'金融经济'},
+  {id:'f17',word:'debt',phonetic:'/det/',meaning:'债务',theme:'金融经济'},
+  {id:'f18',word:'credit',phonetic:'/ˈkred.ɪt/',meaning:'信用',theme:'金融经济'},
+  {id:'f19',word:'savings',phonetic:'/ˈseɪ.vɪŋz/',meaning:'储蓄',theme:'金融经济'},
+  {id:'f20',word:'wealth',phonetic:'/welθ/',meaning:'财富',theme:'金融经济'},
+  // 房屋家居
+  {id:'ho1',word:'house',phonetic:'/haʊs/',meaning:'房子',theme:'房屋家居'},
+  {id:'ho2',word:'apartment',phonetic:'/əˈpɑːrt.mənt/',meaning:'公寓',theme:'房屋家居'},
+  {id:'ho3',word:'bedroom',phonetic:'/ˈbed.ruːm/',meaning:'卧室',theme:'房屋家居'},
+  {id:'ho4',word:'bathroom',phonetic:'/ˈbæθ.ruːm/',meaning:'浴室',theme:'房屋家居'},
+  {id:'ho5',word:'kitchen',phonetic:'/ˈkɪtʃ.ən/',meaning:'厨房',theme:'房屋家居'},
+  {id:'ho6',word:'living',phonetic:'/ˈlɪv.ɪŋ/',meaning:'客厅',theme:'房屋家居'},
+  {id:'ho7',word:'balcony',phonetic:'/ˈbæl.kə.ni/',meaning:'阳台',theme:'房屋家居'},
+  {id:'ho8',word:'furniture',phonetic:'/ˈfɝː.nɪ.tʃɚ/',meaning:'家具',theme:'房屋家居'},
+  {id:'ho9',word:'sofa',phonetic:'/ˈsoʊ.fə/',meaning:'沙发',theme:'房屋家居'},
+  {id:'ho10',word:'table',phonetic:'/ˈteɪ.bəl/',meaning:'桌子',theme:'房屋家居'},
+  {id:'ho11',word:'chair',phonetic:'/tʃer/',meaning:'椅子',theme:'房屋家居'},
+  {id:'ho12',word:'bed',phonetic:'/bed/',meaning:'床',theme:'房屋家居'},
+  {id:'ho13',word:'closet',phonetic:'/ˈklɑːz.ɪt/',meaning:'衣柜',theme:'房屋家居'},
+  {id:'ho14',word:'curtain',phonetic:'/ˈkɝː.t̬ən/',meaning:'窗帘',theme:'房屋家居'},
+  {id:'ho15',word:'lamp',phonetic:'/læmp/',meaning:'灯',theme:'房屋家居'},
+  {id:'ho16',word:'carpet',phonetic:'/ˈkɑːr.pɪt/',meaning:'地毯',theme:'房屋家居'},
+  {id:'ho17',word:'refrigerator',phonetic:'/rɪˈfrɪdʒ.ɚ.eɪ.t̬ɚ/',meaning:'冰箱',theme:'房屋家居'},
+  {id:'ho18',word:'washer',phonetic:'/ˈwɑː.ʃɚ/',meaning:'洗衣机',theme:'房屋家居'},
+  {id:'ho19',word:'air',phonetic:'/er/',meaning:'空调',theme:'房屋家居'},
+  {id:'ho20',word:'heater',phonetic:'/ˈhiː.t̬ɚ/',meaning:'暖气',theme:'房屋家居'},
+  // 天气气候
+  {id:'we1',word:'weather',phonetic:'/ˈweð.ɚ/',meaning:'天气',theme:'天气气候'},
+  {id:'we2',word:'sunny',phonetic:'/ˈsʌn.i/',meaning:'晴朗的',theme:'天气气候'},
+  {id:'we3',word:'cloudy',phonetic:'/ˈklaʊ.di/',meaning:'多云的',theme:'天气气候'},
+  {id:'we4',word:'rainy',phonetic:'/ˈreɪ.ni/',meaning:'下雨的',theme:'天气气候'},
+  {id:'we5',word:'snowy',phonetic:'/ˈsnoʊ.i/',meaning:'下雪的',theme:'天气气候'},
+  {id:'we6',word:'windy',phonetic:'/ˈwɪn.di/',meaning:'有风的',theme:'天气气候'},
+  {id:'we7',word:'foggy',phonetic:'/ˈfɑː.ɡi/',meaning:'有雾的',theme:'天气气候'},
+  {id:'we8',word:'storm',phonetic:'/stɔːrm/',meaning:'暴风雨',theme:'天气气候'},
+  {id:'we9',word:'thunder',phonetic:'/ˈθʌn.dɚ/',meaning:'雷',theme:'天气气候'},
+  {id:'we10',word:'lightning',phonetic:'/ˈlaɪt.nɪŋ/',meaning:'闪电',theme:'天气气候'},
+  {id:'we11',word:'temperature',phonetic:'/ˈtem.prə.tʃɚ/',meaning:'温度',theme:'天气气候'},
+  {id:'we12',word:'humidity',phonetic:'/hjuːˈmɪd.ə.t̬i/',meaning:'湿度',theme:'天气气候'},
+  {id:'we13',word:'forecast',phonetic:'/ˈfɔːr.kæst/',meaning:'预报',theme:'天气气候'},
+  {id:'we14',word:'drought',phonetic:'/draʊt/',meaning:'干旱',theme:'天气气候'},
+  {id:'we15',word:'flood',phonetic:'/flʌd/',meaning:'洪水',theme:'天气气候'},
+  {id:'we16',word:'breeze',phonetic:'/briːz/',meaning:'微风',theme:'天气气候'},
+  {id:'we17',word:'freeze',phonetic:'/friːz/',meaning:'冰冻',theme:'天气气候'},
+  {id:'we18',word:'melting',phonetic:'/ˈmel.t̬ɪŋ/',meaning:'融化',theme:'天气气候'},
+  {id:'we19',word:'rainbow',phonetic:'/ˈreɪn.boʊ/',meaning:'彩虹',theme:'天气气候'},
+  {id:'we20',word:'climate',phonetic:'/ˈklaɪ.mət/',meaning:'气候',theme:'天气气候'},
+  // 情感表达
+  {id:'e1',word:'happy',phonetic:'/ˈhæp.i/',meaning:'开心的',theme:'情感表达'},
+  {id:'e2',word:'sad',phonetic:'/sæd/',meaning:'难过的',theme:'情感表达'},
+  {id:'e3',word:'angry',phonetic:'/ˈæŋ.ɡri/',meaning:'生气的',theme:'情感表达'},
+  {id:'e4',word:'excited',phonetic:'/ɪkˈsaɪ.t̬ɪd/',meaning:'兴奋的',theme:'情感表达'},
+  {id:'e5',word:'nervous',phonetic:'/ˈnɝː.vəs/',meaning:'紧张的',theme:'情感表达'},
+  {id:'e6',word:'worried',phonetic:'/ˈwɝː.id/',meaning:'担心的',theme:'情感表达'},
+  {id:'e7',word:'surprised',phonetic:'/sɚˈpraɪzd/',meaning:'惊讶的',theme:'情感表达'},
+  {id:'e8',word:'bored',phonetic:'/bɔːrd/',meaning:'无聊的',theme:'情感表达'},
+  {id:'e9',word:'tired',phonetic:'/ˈtaɪɚd/',meaning:'累的',theme:'情感表达'},
+  {id:'e10',word:'confused',phonetic:'/kənˈfjuːzd/',meaning:'困惑的',theme:'情感表达'},
+  {id:'e11',word:'proud',phonetic:'/praʊd/',meaning:'骄傲的',theme:'情感表达'},
+  {id:'e12',word:'jealous',phonetic:'/ˈdʒel.əs/',meaning:'嫉妒的',theme:'情感表达'},
+  {id:'e13',word:'grateful',phonetic:'/ˈɡreɪt.fəl/',meaning:'感激的',theme:'情感表达'},
+  {id:'e14',word:'lonely',phonetic:'/ˈloʊn.li/',meaning:'孤独的',theme:'情感表达'},
+  {id:'e15',word:'embarrassed',phonetic:'/ɪmˈber.əst/',meaning:'尴尬的',theme:'情感表达'},
+  {id:'e16',word:'disappointed',phonetic:'/ˌdɪs.əˈpɔɪn.t̬ɪd/',meaning:'失望的',theme:'情感表达'},
+  {id:'e17',word:'anxious',phonetic:'/ˈæŋk.ʃəs/',meaning:'焦虑的',theme:'情感表达'},
+  {id:'e18',word:'relieved',phonetic:'/rɪˈliːvd/',meaning:'如释重负的',theme:'情感表达'},
+  {id:'e19',word:'curious',phonetic:'/ˈkjʊr.i.əs/',meaning:'好奇的',theme:'情感表达'},
+  {id:'e20',word:'hopeful',phonetic:'/ˈhoʊp.fəl/',meaning:'充满希望的',theme:'情感表达'},
+  // 自然环境
+  {id:'n1',word:'forest',phonetic:'/ˈfɔːr.ɪst/',meaning:'森林',theme:'自然环境'},
+  {id:'n2',word:'river',phonetic:'/ˈrɪv.ɚ/',meaning:'河流',theme:'自然环境'},
+  {id:'n3',word:'ocean',phonetic:'/ˈoʊ.ʃən/',meaning:'海洋',theme:'自然环境'},
+  {id:'n4',word:'lake',phonetic:'/leɪk/',meaning:'湖泊',theme:'自然环境'},
+  {id:'n5',word:'desert',phonetic:'/ˈdez.ɚt/',meaning:'沙漠',theme:'自然环境'},
+  {id:'n6',word:'valley',phonetic:'/ˈvæl.i/',meaning:'山谷',theme:'自然环境'},
+  {id:'n7',word:'island',phonetic:'/ˈaɪ.lənd/',meaning:'岛屿',theme:'自然环境'},
+  {id:'n8',word:'volcano',phonetic:'/vɑːlˈkeɪ.noʊ/',meaning:'火山',theme:'自然环境'},
+  {id:'n9',word:'earthquake',phonetic:'/ˈɝːθ.kweɪk/',meaning:'地震',theme:'自然环境'},
+  {id:'n10',word:'tsunami',phonetic:'/tsuːˈnɑː.mi/',meaning:'海啸',theme:'自然环境'},
+  {id:'n11',word:'wildlife',phonetic:'/ˈwaɪld.laɪf/',meaning:'野生动物',theme:'自然环境'},
+  {id:'n12',word:'ecosystem',phonetic:'/ˈiː.koʊˌsɪs.təm/',meaning:'生态系统',theme:'自然环境'},
+  {id:'n13',word:'pollution',phonetic:'/pəˈluː.ʃən/',meaning:'污染',theme:'自然环境'},
+  {id:'n14',word:'recycle',phonetic:'/ˈriː.saɪ.kəl/',meaning:'回收',theme:'自然环境'},
+  {id:'n15',word:'solar',phonetic:'/ˈsoʊ.lɚ/',meaning:'太阳能的',theme:'自然环境'},
+  {id:'n16',word:'renewable',phonetic:'/rɪˈnuː.ə.bəl/',meaning:'可再生的',theme:'自然环境'},
+  {id:'n17',word:'conservation',phonetic:'/ˌkɑːn.sɚˈveɪ.ʃən/',meaning:'保护',theme:'自然环境'},
+  {id:'n18',word:'species',phonetic:'/ˈspiː.ʃiːz/',meaning:'物种',theme:'自然环境'},
+  {id:'n19',word:'habitat',phonetic:'/ˈhæb.ɪ.tæt/',meaning:'栖息地',theme:'自然环境'},
+  {id:'n20',word:'extinct',phonetic:'/ɪkˈstɪŋkt/',meaning:'灭绝的',theme:'自然环境'},
+];
+
+// 去重（基于word字段）
+const wordMap = new Map();
+BUILT_IN_VOCAB.forEach(item => {
+  if (!wordMap.has(item.word)) wordMap.set(item.word, item);
+});
+const UNIQUE_VOCAB = Array.from(wordMap.values());
+
+// ==================== IndexedDB ====================
+const DB_NAME = 'VocabDailyDB';
+const DB_VERSION = 1;
+
+function openDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(DB_NAME, DB_VERSION);
+    req.onerror = () => reject(req.error);
+    req.onsuccess = () => resolve(req.result);
+    req.onupgradeneeded = (e) => {
+      const db = e.target.result;
+      if (!db.objectStoreNames.contains('words')) {
+        const w = db.createObjectStore('words', {keyPath: 'id'});
+        w.createIndex('theme', 'theme', {unique: false});
+        w.createIndex('word', 'word', {unique: true});
+      }
+      if (!db.objectStoreNames.contains('progress')) {
+        const p = db.createObjectStore('progress', {keyPath: 'wordId'});
+        p.createIndex('status', 'status', {unique: false});
+      }
+      if (!db.objectStoreNames.contains('settings')) {
+        db.createObjectStore('settings', {keyPath: 'key'});
+      }
+      if (!db.objectStoreNames.contains('daily')) {
+        db.createObjectStore('daily', {keyPath: 'date'});
+      }
+    };
+  });
+}
+
+async function withStore(storeName, mode = 'readonly') {
+  const db = await openDB();
+  return db.transaction(storeName, mode).objectStore(storeName);
+}
+
+async function getAll(storeName) {
+  const store = await withStore(storeName);
+  return new Promise((resolve, reject) => {
+    const req = store.getAll();
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function put(storeName, data) {
+  const store = await withStore(storeName, 'readwrite');
+  return new Promise((resolve, reject) => {
+    const req = store.put(data);
+    req.onsuccess = () => resolve();
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function get(storeName, key) {
+  const store = await withStore(storeName);
+  return new Promise((resolve, reject) => {
+    const req = store.get(key);
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function remove(storeName, key) {
+  const store = await withStore(storeName, 'readwrite');
+  return new Promise((resolve, reject) => {
+    const req = store.delete(key);
+    req.onsuccess = () => resolve();
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function clearStore(storeName) {
+  const store = await withStore(storeName, 'readwrite');
+  return new Promise((resolve, reject) => {
+    const req = store.clear();
+    req.onsuccess = () => resolve();
+    req.onerror = () => reject(req.error);
+  });
+}
+
+// ==================== 全局状态 ====================
+let appState = {
+  db: null,
+  dailyGoal: 500,
+  todayQueue: [],
+  todayKnown: [],
+  currentIndex: 0,
+  activeThemes: [],
+  allThemes: [],
+  generatedWords: [],
+};
+
+// ==================== 工具函数 ====================
+function showToast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2000);
+}
+
+function showModal(title, body) {
+  document.getElementById('modal-title').textContent = title;
+  document.getElementById('modal-body').innerHTML = body;
+  document.getElementById('modal').classList.add('show');
+}
+
+function closeModal() {
+  document.getElementById('modal').classList.remove('show');
+}
+
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  document.getElementById('menu-btn').style.display = name === 'home' ? 'inline-block' : 'none';
+  document.getElementById('back-btn').style.display = name === 'home' ? 'none' : 'inline-block';
+  if (name === 'home') renderHome();
+  if (name === 'vocab') renderVocab();
+}
+
+function speak(word) {
+  if (!window.speechSynthesis) return;
+  window.speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(word);
+  u.lang = 'en-US';
+  u.rate = 0.8;
+  window.speechSynthesis.speak(u);
+}
+
+function getTodayStr() {
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+
+// ==================== 初始化 ====================
+async function init() {
+  appState.db = await openDB();
+
+  // 检查是否已导入内置词库
+  const existing = await getAll('words');
+  if (existing.length === 0) {
+    const tx = appState.db.transaction('words', 'readwrite');
+    const store = tx.objectStore('words');
+    for (const w of UNIQUE_VOCAB) store.put(w);
+    await new Promise((res,rej)=>{tx.oncomplete=res;tx.onerror=rej;});
+  }
+
+  // 加载设置
+  const goalSetting = await get('settings', 'dailyGoal');
+  if (goalSetting) {
+    appState.dailyGoal = goalSetting.value;
+    document.getElementById('setting-daily').value = appState.dailyGoal;
+  }
+
+  const themeSetting = await get('settings', 'activeThemes');
+  if (themeSetting) appState.activeThemes = themeSetting.value;
+
+  renderHome();
+}
+
+// ==================== 首页 ====================
+async function renderHome() {
+  const words = await getAll('words');
+  const progress = await getAll('progress');
+
+  // 提取所有主题
+  const themes = [...new Set(words.map(w => w.theme))].sort();
+  appState.allThemes = themes;
+  if (appState.activeThemes.length === 0) appState.activeThemes = [...themes];
+
+  // 统计
+  const knownIds = new Set(progress.filter(p => p.status === 'known').map(p => p.wordId));
+  const unknownCount = words.filter(w => !knownIds.has(w.id) && appState.activeThemes.includes(w.theme)).length;
+  const knownCount = words.filter(w => knownIds.has(w.id)).length;
+  const totalCount = words.length;
+
+  document.getElementById('stat-total').textContent = totalCount;
+  document.getElementById('stat-known').textContent = knownCount;
+  document.getElementById('stat-unknown').textContent = unknownCount;
+
+  // 今日进度
+  const todayStr = getTodayStr();
+  const todayRec = await get('daily', todayStr);
+  const todayDone = todayRec ? todayRec.completed : 0;
+  const todayKnown = todayRec ? todayRec.knownCount : 0;
+  const remain = Math.max(0, appState.dailyGoal - todayDone);
+
+  document.getElementById('home-remain').textContent = remain;
+  document.getElementById('home-total').textContent = appState.dailyGoal;
+  document.getElementById('home-bar').style.width = Math.min(100, (todayDone / appState.dailyGoal) * 100) + '%';
+
+  // 主题标签
+  const tagContainer = document.getElementById('theme-tags');
+  tagContainer.innerHTML = themes.map(t => {
+    const active = appState.activeThemes.includes(t);
+    return `<button class="theme-tag ${active?'active':''}" onclick="toggleTheme('${t}')">${t}</button>`;
+  }).join('');
+
+  // 学习天数（有记录的不同日期数）
+  const allDaily = await getAll('daily');
+  document.getElementById('stat-days').textContent = allDaily.length || 1;
+}
+
+async function toggleTheme(theme) {
+  if (appState.activeThemes.includes(theme)) {
+    if (appState.activeThemes.length <= 1) {
+      showToast('至少保留一个主题');
+      return;
+    }
+    appState.activeThemes = appState.activeThemes.filter(t => t !== theme);
+  } else {
+    appState.activeThemes.push(theme);
+  }
+  await put('settings', {key:'activeThemes', value:appState.activeThemes});
+  renderHome();
+}
+
+// ==================== 组卷与学习 ====================
+async function startStudy() {
+  const todayStr = getTodayStr();
+  const words = await getAll('words');
+  const progress = await getAll('progress');
+
+  // 构建状态映射
+  const progMap = new Map(progress.map(p => [p.wordId, p]));
+  const knownIds = new Set(progress.filter(p => p.status === 'known').map(p => p.wordId));
+
+  // 筛选可用单词（未认识且在激活主题中）
+  const available = words.filter(w => !knownIds.has(w.id) && appState.activeThemes.includes(w.theme));
+
+  if (available.length === 0) {
+    showModal('提示', '当前主题下所有单词都已掌握！可以去「主题生成」添加新词库。');
+    return;
+  }
+
+  // 检查今天是否已有记录
+  let todayRec = await get('daily', todayStr);
+  if (!todayRec) {
+    todayRec = {date: todayStr, total: appState.dailyGoal, completed: 0, knownCount: 0, knownIds: []};
+  }
+
+  // 如果今天已经刷完目标数量
+  if (todayRec.completed >= appState.dailyGoal) {
+    showModal('提示', '今日目标已完成！可以再来一轮或明天继续。');
+    return;
+  }
+
+  // 组卷：优先 yesterday unknown，然后随机新词
+  const yesterdayStr = getYesterdayStr();
+  const yesterdayRec = await get('daily', yesterdayStr);
+  const yesterdayUnknown = new Set();
+  if (yesterdayRec && yesterdayRec.unknownIds) {
+    yesterdayRec.unknownIds.forEach(id => yesterdayUnknown.add(id));
+  }
+
+  // 按优先级排序
+  available.sort((a, b) => {
+    const aUnknown = yesterdayUnknown.has(a.id) ? 1 : 0;
+    const bUnknown = yesterdayUnknown.has(b.id) ? 1 : 0;
+    if (aUnknown !== bUnknown) return bUnknown - aUnknown;
+    const aReview = progMap.get(a.id)?.reviewCount || 0;
+    const bReview = progMap.get(b.id)?.reviewCount || 0;
+    return bReview - aReview;
+  });
+
+  // 取今天需要学习的数量
+  const need = appState.dailyGoal - todayRec.completed;
+  appState.todayQueue = available.slice(0, need);
+  appState.currentIndex = 0;
+  appState.todayKnown = [];
+
+  showPage('study');
+  renderCard();
+  updateStudyInfo();
+}
+
+function getYesterdayStr() {
+  const d = new Date();
+  d.setDate(d.getDate() - 1);
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+
+function updateStudyInfo() {
+  const todayStr = getTodayStr();
+  get('daily', todayStr).then(rec => {
+    const completed = rec ? rec.completed : 0;
+    const known = rec ? rec.knownCount : 0;
+    document.getElementById('study-progress').textContent = completed + '/' + appState.dailyGoal;
+    document.getElementById('study-known').textContent = known;
+  });
+}
+
+function renderCard() {
+  const wrap = document.getElementById('card-wrap');
+  if (appState.currentIndex >= appState.todayQueue.length) {
+    showDonePage();
+    return;
+  }
+
+  const word = appState.todayQueue[appState.currentIndex];
+  wrap.innerHTML = `
+    <div class="word-card" id="active-card">
+      <button class="speak-btn" onclick="speak('${word.word}')">&#128266;</button>
+      <span class="theme-label">${word.theme}</span>
+      <div class="word">${word.word}</div>
+      <div class="phonetic">${word.phonetic}</div>
+      <div class="meaning">${word.meaning}</div>
+    </div>
+  `;
+
+  // 绑定滑动
+  bindSwipe(document.getElementById('active-card'));
+}
+
+function bindSwipe(card) {
+  let startX = 0, startY = 0, dx = 0, dy = 0;
+  card.addEventListener('touchstart', e => {
+    startX = e.touches[0].clientX;
+    startY = e.touches[0].clientY;
+  }, {passive:true});
+  card.addEventListener('touchmove', e => {
+    dx = e.touches[0].clientX - startX;
+    dy = e.touches[0].clientY - startY;
+    if (Math.abs(dx) > Math.abs(dy)) {
+      card.style.transform = `translateX(${dx}px) rotate(${dx*0.05}deg)`;
+    }
+  }, {passive:true});
+  card.addEventListener('touchend', () => {
+    if (dx > 80) {
+      handleKnown();
+    } else if (dx < -80) {
+      handleUnknown();
+    } else {
+      card.style.transform = '';
+    }
+    dx = 0;
+  });
+}
+
+async function handleKnown() {
+  const word = appState.todayQueue[appState.currentIndex];
+  if (!word) return;
+
+  // 更新进度
+  await put('progress', {
+    wordId: word.id,
+    status: 'known',
+    lastReviewed: new Date().toISOString(),
+    reviewCount: 0
+  });
+
+  // 记录今日
+  const todayStr = getTodayStr();
+  let rec = await get('daily', todayStr);
+  if (!rec) rec = {date: todayStr, total: appState.dailyGoal, completed: 0, knownCount: 0, knownIds: [], unknownIds: []};
+  rec.completed++;
+  rec.knownCount++;
+  rec.knownIds = rec.knownIds || [];
+  rec.knownIds.push(word.id);
+  await put('daily', rec);
+
+  // 加入今日可撤销列表
+  appState.todayKnown.push(word);
+
+  appState.currentIndex++;
+  animateCard('right');
+}
+
+async function handleUnknown() {
+  const word = appState.todayQueue[appState.currentIndex];
+  if (!word) return;
+
+  const prog = await get('progress', word.id);
+  const reviewCount = prog ? (prog.reviewCount || 0) + 1 : 1;
+
+  await put('progress', {
+    wordId: word.id,
+    status: 'unknown',
+    lastReviewed: new Date().toISOString(),
+    reviewCount: reviewCount
+  });
+
+  const todayStr = getTodayStr();
+  let rec = await get('daily', todayStr);
+  if (!rec) rec = {date: todayStr, total: appState.dailyGoal, completed: 0, knownCount: 0, knownIds: [], unknownIds: []};
+  rec.completed++;
+  rec.unknownIds = rec.unknownIds || [];
+  rec.unknownIds.push(word.id);
+  await put('daily', rec);
+
+  appState.currentIndex++;
+  animateCard('left');
+}
+
+function animateCard(direction) {
+  const card = document.getElementById('active-card');
+  if (!card) { renderCard(); return; }
+  card.style.transition = 'transform 0.3s, opacity 0.3s';
+  card.style.transform = direction === 'right' ? 'translateX(120%) rotate(15deg)' : 'translateX(-120%) rotate(-15deg)';
+  card.style.opacity = '0';
+  setTimeout(() => {
+    renderCard();
+    updateStudyInfo();
+  }, 300);
+}
+
+function toggleKnownList() {
+  const list = document.getElementById('today-known-list');
+  if (list.classList.contains('show')) {
+    list.classList.remove('show');
+    return;
+  }
+  list.innerHTML = appState.todayKnown.length === 0
+    ? '<div style="padding:12px;color:#666;text-align:center">今天还没有标记认识的单词</div>'
+    : appState.todayKnown.map((w,i) => `
+      <div class="known-item">
+        <span><b>${w.word}</b> ${w.meaning}</span>
+        <button onclick="undoKnown(${i})">撤销</button>
+      </div>
+    `).join('');
+  list.classList.add('show');
+}
+
+async function undoKnown(index) {
+  const word = appState.todayKnown[index];
+  if (!word) return;
+
+  // 删除进度记录中的known状态
+  await remove('progress', word.id);
+
+  // 修正今日记录
+  const todayStr = getTodayStr();
+  let rec = await get('daily', todayStr);
+  if (rec) {
+    rec.knownCount = Math.max(0, rec.knownCount - 1);
+    rec.completed = Math.max(0, rec.completed - 1);
+    rec.knownIds = (rec.knownIds || []).filter(id => id !== word.id);
+    // 把这个词重新加回今日队列
+    appState.todayQueue.splice(appState.currentIndex, 0, word);
+    await put('daily', rec);
+  }
+
+  appState.todayKnown.splice(index, 1);
+  toggleKnownList();
+  toggleKnownList(); // refresh
+  updateStudyInfo();
+  renderCard();
+  showToast('已撤销');
+}
+
+// ==================== 完成页 ====================
+async function showDonePage() {
+  const todayStr = getTodayStr();
+  const rec = await get('daily', todayStr);
+  const known = rec ? rec.knownCount : 0;
+  const words = await getAll('words');
+  const progress = await getAll('progress');
+  const knownIds = new Set(progress.filter(p => p.status === 'known').map(p => p.wordId));
+  const remain = words.filter(w => !knownIds.has(w.id) && appState.activeThemes.includes(w.theme)).length;
+
+  document.getElementById('done-summary').innerHTML = `
+    今日标记认识 <b>${known}</b> 个单词<br>
+    当前主题下还有 <b>${remain}</b> 个单词待掌握<br>
+    继续加油！
+  `;
+  showPage('done');
+}
+
+// ==================== 词库页 ====================
+async function renderVocab() {
+  const search = document.getElementById('vocab-search').value.toLowerCase();
+  const words = await getAll('words');
+  const filtered = words.filter(w =>
+    w.word.toLowerCase().includes(search) ||
+    w.meaning.includes(search) ||
+    w.theme.includes(search)
+  );
+
+  const list = document.getElementById('vocab-list');
+  if (filtered.length === 0) {
+    list.innerHTML = '<div class="empty"><div class="icon">&#128218;</div>没有找到单词</div>';
+    return;
+  }
+  list.innerHTML = filtered.map(w => `
+    <div class="vocab-item">
+      <div>
+        <span class="w">${w.word}</span>
+        <span class="p">${w.phonetic}</span>
+      </div>
+      <span class="m">${w.meaning}</span>
+      <span class="t">${w.theme}</span>
+    </div>
+  `).join('');
+}
+
+// ==================== 生成向导 ====================
+function generatePrompt() {
+  const theme = document.getElementById('gen-theme').value.trim();
+  if (!theme) { showToast('请输入主题'); return; }
+
+  const prompt = `Please generate a vocabulary list for the theme "${theme}".
+The list should contain common English words that a learner would encounter in this context.
+For each word, provide:
+- word: the English word
+- phonetic: IPA phonetic transcription (American pronunciation)
+- meaning: Chinese translation
+- theme: "${theme}"
+
+Return ONLY a valid JSON array in this exact format, no markdown, no explanation:
+[
+  {"word":"example","phonetic":"/ɪɡˈzæm.pəl/","meaning":"例子","theme":"${theme}"},
+  ...
+]
+
+Generate about 30-50 words.`;
+
+  document.getElementById('gen-prompt').value = prompt;
+  document.getElementById('gen-prompt-box').style.display = 'block';
+  document.getElementById('gen-result-box').style.display = 'block';
+  document.getElementById('gen-preview-box').style.display = 'none';
+}
+
+function copyPrompt() {
+  const el = document.getElementById('gen-prompt');
+  el.select();
+  document.execCommand('copy');
+  showToast('提示词已复制');
+}
+
+function parseGenerated() {
+  const text = document.getElementById('gen-result').value.trim();
+  if (!text) { showToast('请先粘贴AI返回的结果'); return; }
+
+  let data;
+  try {
+    // 尝试提取JSON
+    const match = text.match(/\[[\s\S]*\]/);
+    data = JSON.parse(match ? match[0] : text);
+  } catch(e) {
+    showToast('解析失败，请检查JSON格式');
+    return;
+  }
+
+  if (!Array.isArray(data) || data.length === 0) {
+    showToast('未解析到有效单词');
+    return;
+  }
+
+  // 去重：基于word
+  const existingWords = new Set();
+  getAll('words').then(words => {
+    words.forEach(w => existingWords.add(w.word.toLowerCase()));
+    const newWords = data.filter(w => w.word && !existingWords.has(w.word.toLowerCase()));
+    appState.generatedWords = newWords.map((w, i) => ({
+      id: 'gen_' + Date.now() + '_' + i,
+      word: w.word,
+      phonetic: w.phonetic || '',
+      meaning: w.meaning || '',
+      theme: w.theme || document.getElementById('gen-theme').value.trim()
+    }));
+
+    document.getElementById('gen-count').textContent = appState.generatedWords.length;
+    document.getElementById('gen-preview-list').innerHTML = appState.generatedWords.map(w => `
+      <div class="vocab-item">
+        <div><span class="w">${w.word}</span><span class="p">${w.phonetic}</span></div>
+        <span class="m">${w.meaning}</span>
+      </div>
+    `).join('');
+    document.getElementById('gen-preview-box').style.display = 'block';
+  });
+}
+
+async function importGenerated() {
+  if (appState.generatedWords.length === 0) return;
+  const count = appState.generatedWords.length;
+  const db = await openDB();
+  const tx = db.transaction('words', 'readwrite');
+  const store = tx.objectStore('words');
+  for (const w of appState.generatedWords) store.put(w);
+  await new Promise((res,rej)=>{tx.oncomplete=res;tx.onerror=rej;});
+
+  appState.generatedWords = [];
+  document.getElementById('gen-theme').value = '';
+  document.getElementById('gen-result').value = '';
+  document.getElementById('gen-prompt-box').style.display = 'none';
+  document.getElementById('gen-result-box').style.display = 'none';
+  document.getElementById('gen-preview-box').style.display = 'none';
+
+  showToast(`成功导入 ${count} 个新单词`);
+  // 刷新active themes
+  renderHome();
+}
+
+// ==================== 设置 ====================
+async function saveSettings() {
+  const val = parseInt(document.getElementById('setting-daily').value);
+  appState.dailyGoal = Math.max(10, Math.min(1000, val));
+  document.getElementById('setting-daily').value = appState.dailyGoal;
+  await put('settings', {key:'dailyGoal', value:appState.dailyGoal});
+  showToast('设置已保存');
+}
+
+async function exportData() {
+  const words = await getAll('words');
+  const progress = await getAll('progress');
+  const settings = await getAll('settings');
+  const daily = await getAll('daily');
+  const data = {words, progress, settings, daily, exportedAt: new Date().toISOString()};
+  const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'vocab-backup-' + getTodayStr() + '.json';
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('备份已下载');
+}
+
+async function importData(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const text = await file.text();
+  let data;
+  try {
+    data = JSON.parse(text);
+  } catch(e) {
+    showToast('文件格式错误');
+    return;
+  }
+
+  if (!data.words) { showToast('无效的备份文件'); return; }
+
+  const db = await openDB();
+
+  if (data.words) {
+    const tx = db.transaction('words', 'readwrite');
+    const store = tx.objectStore('words');
+    for (const w of data.words) store.put(w);
+    await new Promise((res,rej)=>{tx.oncomplete=res;tx.onerror=rej;});
+  }
+  if (data.progress) {
+    const tx = db.transaction('progress', 'readwrite');
+    const store = tx.objectStore('progress');
+    for (const p of data.progress) store.put(p);
+    await new Promise((res,rej)=>{tx.oncomplete=res;tx.onerror=rej;});
+  }
+  if (data.settings) {
+    const tx = db.transaction('settings', 'readwrite');
+    const store = tx.objectStore('settings');
+    for (const s of data.settings) store.put(s);
+    await new Promise((res,rej)=>{tx.oncomplete=res;tx.onerror=rej;});
+  }
+  if (data.daily) {
+    const tx = db.transaction('daily', 'readwrite');
+    const store = tx.objectStore('daily');
+    for (const d of data.daily) store.put(d);
+    await new Promise((res,rej)=>{tx.oncomplete=res;tx.onerror=rej;});
+  }
+
+  input.value = '';
+  showToast('数据恢复成功');
+  renderHome();
+}
+
+async function resetProgress() {
+  if (!confirm('确定要清除所有学习记录吗？词库会保留。')) return;
+  await clearStore('progress');
+  await clearStore('daily');
+  showToast('学习进度已重置');
+  renderHome();
+}
+
+async function clearAll() {
+  if (!confirm('确定要删除所有数据吗？此操作不可逆！')) return;
+  await clearStore('words');
+  await clearStore('progress');
+  await clearStore('daily');
+  await clearStore('settings');
+  showToast('所有数据已清除');
+  renderHome();
+}
+
+// ==================== 启动 ====================
+init();
+</script>
+</body>
+</html>
