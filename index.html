@@ -96,6 +96,12 @@ input[type="file"]{display:none}
 /* Toast */
 .toast{position:fixed;top:80px;left:50%;transform:translateX(-50%) translateY(-20px);background:#1f2937;color:#fff;padding:10px 20px;border-radius:8px;font-size:14px;opacity:0;transition:all .3s;z-index:300;pointer-events:none}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.toggle{position:relative;display:inline-block;width:48px;height:28px}
+.toggle input{opacity:0;width:0;height:0}
+.toggle-slider{position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background:#d1d5db;border-radius:14px;transition:.3s}
+.toggle-slider:before{position:absolute;content:"";height:22px;width:22px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:.3s}
+.toggle input:checked + .toggle-slider{background:#2563eb}
+.toggle input:checked + .toggle-slider:before{transform:translateX(20px)}
 
 /* Empty state */
 .empty{text-align:center;padding:48px 16px;color:#9ca3af}
@@ -200,6 +206,13 @@ input[type="file"]{display:none}
           <div class="value">每天学习的单词数量</div>
         </div>
         <input type="number" id="setting-daily" value="500" min="10" max="1000" step="10" onchange="saveSettings()">
+      </div>
+      <div class="setting-row">
+        <div>
+          <div class="label">自动发音</div>
+          <div class="value">新卡片出现时自动朗读</div>
+        </div>
+        <label class="toggle"><input type="checkbox" id="setting-autospeak" checked onchange="saveSettings()"><span class="toggle-slider"></span></label>
       </div>
       <div class="setting-row">
         <div>
@@ -1045,6 +1058,11 @@ async function init() {
   const themeSetting = await get('settings', 'activeThemes');
   if (themeSetting) appState.activeThemes = themeSetting.value;
 
+  const autoSpeakSetting = await get('settings', 'autoSpeak');
+  if (autoSpeakSetting !== undefined) {
+    document.getElementById('setting-autospeak').checked = autoSpeakSetting.value;
+  }
+
   renderHome();
 }
 
@@ -1200,6 +1218,11 @@ function renderCard() {
 
   // 绑定滑动
   bindSwipe(document.getElementById('active-card'));
+
+  // 自动发音
+  if (document.getElementById('setting-autospeak').checked) {
+    setTimeout(() => speak(word.word), 150);
+  }
 }
 
 function bindSwipe(card) {
@@ -1592,6 +1615,10 @@ async function saveSettings() {
   appState.dailyGoal = Math.max(10, Math.min(1000, val));
   document.getElementById('setting-daily').value = appState.dailyGoal;
   await put('settings', {key:'dailyGoal', value:appState.dailyGoal});
+
+  const autoSpeak = document.getElementById('setting-autospeak').checked;
+  await put('settings', {key:'autoSpeak', value:autoSpeak});
+
   showToast('设置已保存');
 }
 
