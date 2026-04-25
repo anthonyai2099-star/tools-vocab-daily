@@ -986,6 +986,8 @@ let appState = {
   activeThemes: [],
   allThemes: [],
   generatedWords: [],
+  generatedExisting: [],
+  generatedKnown: [],
 };
 
 // ==================== 工具函数 ====================
@@ -1134,7 +1136,7 @@ async function startStudy() {
   const knownIds = new Set(progress.filter(p => p.status === 'known').map(p => p.wordId));
 
   // 筛选可用单词（未认识且在激活主题中）
-  const available = words.filter(w => !knownIds.has(w.id) && appState.activeThemes.includes(w.theme));
+  let available = words.filter(w => !knownIds.has(w.id) && appState.activeThemes.includes(w.theme));
 
   if (available.length === 0) {
     showModal('提示', '当前主题下所有单词都已掌握！可以去「主题生成」添加新词库。');
@@ -1144,12 +1146,22 @@ async function startStudy() {
   // 检查今天是否已有记录
   let todayRec = await get('daily', todayStr);
   if (!todayRec) {
-    todayRec = {date: todayStr, total: appState.dailyGoal, completed: 0, knownCount: 0, knownIds: []};
+    todayRec = {date: todayStr, total: appState.dailyGoal, completed: 0, knownCount: 0, knownIds: [], unknownIds: []};
   }
 
-  // 如果今天已经刷完目标数量
-  if (todayRec.completed >= appState.dailyGoal) {
-    showModal('提示', '今日目标已完成！可以再来一轮或明天继续。');
+  // 排除今天已经学过的词（无论认识/不认识，今天不再出现）
+  const todayLearnedIds = new Set([
+    ...(todayRec.knownIds || []),
+    ...(todayRec.unknownIds || [])
+  ]);
+  available = available.filter(w => !todayLearnedIds.has(w.id));
+
+  if (available.length === 0) {
+    if (todayRec.completed > 0) {
+      showModal('提示', '今天该学的单词都已经学过了！明天会安排复习。');
+    } else {
+      showModal('提示', '当前主题下所有单词都已掌握！可以去「主题生成」添加新词库。');
+    }
     return;
   }
 
@@ -1171,8 +1183,14 @@ async function startStudy() {
     return bReview - aReview;
   });
 
-  // 取今天需要学习的数量
-  const need = appState.dailyGoal - todayRec.completed;
+  // 取今天需要学习的数量（不超过剩余可用词）
+  const need = Math.min(appState.dailyGoal - todayRec.completed, available.length);
+
+  if (need <= 0) {
+    showModal('提示', '今日目标已完成！可以再来一轮或明天继续。');
+    return;
+  }
+
   appState.todayQueue = available.slice(0, need);
   appState.currentIndex = 0;
   appState.todayKnown = [];
@@ -1557,25 +1575,58 @@ function parseGenerated() {
     return;
   }
 
-  // 去重
-  getAll('words').then(words => {
-    const existingWords = new Set(words.map(w => w.word.toLowerCase()));
-    const newWords = mapped.filter(w => !existingWords.has(w.word.toLowerCase()));
-    appState.generatedWords = newWords.map((w, i) => ({
+  // 去重 + 分类
+  Promise.all([getAll('words'), getAll('progress')]).then(([words, progress]) => {
+    const existingMap = new Map(words.map(w => [w.word.toLowerCase(), w]));
+    const knownIds = new Set(progress.filter(p => p.status === 'known').map(p => p.wordId));
+
+    const result = { newWords: [], existingWords: [], knownWords: [] };
+
+    for (const w of mapped) {
+      const lower = w.word.toLowerCase();
+      const existing = existingMap.get(lower);
+      if (!existing) {
+        result.newWords.push(w);
+      } else if (knownIds.has(existing.id)) {
+        result.knownWords.push(w);
+      } else {
+        result.existingWords.push(w);
+      }
+    }
+
+    appState.generatedWords = result.newWords.map((w, i) => ({
       id: 'gen_' + Date.now() + '_' + i,
       word: w.word,
       phonetic: w.phonetic,
       meaning: w.meaning,
       theme: w.theme
     }));
+    appState.generatedExisting = result.existingWords;
+    appState.generatedKnown = result.knownWords;
+
+    const total = mapped.length;
+    const stats = `<div style="font-size:14px;color:#666;margin-bottom:12px">
+      共解析 ${total} 个 · 新词 <b>${result.newWords.length}</b> 个
+      ${result.existingWords.length > 0 ? '· 已存在 ' + result.existingWords.length + ' 个' : ''}
+      ${result.knownWords.length > 0 ? '· 你已认识 ' + result.knownWords.length + ' 个' : ''}
+    </div>`;
 
     if (appState.generatedWords.length === 0) {
-      showModal('导入提示', '所有单词都已存在于词库中，没有新单词需要导入。');
+      let msg = '所有单词都已存在于词库中。';
+      if (result.knownWords.length > 0) {
+        msg += `<br><br>其中 ${result.knownWords.length} 个你已认识：<br>` +
+          result.knownWords.map(w => `<span style="color:#16a34a">${escapeHtml(w.word)}</span>`).join('、');
+      }
+      if (result.existingWords.length > 0) {
+        msg += `<br><br>${result.existingWords.length} 个已存在但未认识：<br>` +
+          result.existingWords.map(w => escapeHtml(w.word)).join('、');
+      }
+      showModal('导入提示', msg);
       return;
     }
 
     document.getElementById('gen-count').textContent = appState.generatedWords.length;
-    document.getElementById('gen-preview-list').innerHTML = appState.generatedWords.map(w => `
+    document.getElementById('gen-preview-list').innerHTML = stats + appState.generatedWords.map(w => `
       <div class="vocab-item">
         <div><span class="w">${escapeHtml(w.word)}</span><span class="p">${escapeHtml(w.phonetic)}</span></div>
         <span class="m">${escapeHtml(w.meaning)}</span>
@@ -1597,15 +1648,24 @@ async function importGenerated() {
   for (const w of appState.generatedWords) store.put(w);
   await new Promise((res,rej)=>{tx.oncomplete=res;tx.onerror=rej;});
 
+  const existingCount = appState.generatedExisting ? appState.generatedExisting.length : 0;
+  const knownCount = appState.generatedKnown ? appState.generatedKnown.length : 0;
+
   appState.generatedWords = [];
+  appState.generatedExisting = [];
+  appState.generatedKnown = [];
   document.getElementById('gen-theme').value = '';
   document.getElementById('gen-result').value = '';
   document.getElementById('gen-prompt-box').style.display = 'none';
   document.getElementById('gen-result-box').style.display = 'none';
   document.getElementById('gen-preview-box').style.display = 'none';
-
-  showToast(`成功导入 ${count} 个新单词`);
-  // 刷新active themes
+  let msg = `成功导入 <b>${count}</b> 个新单词！`;
+  if (existingCount > 0 || knownCount > 0) {
+    msg += `<br><br>跳过 ${existingCount + knownCount} 个：`;
+    if (knownCount > 0) msg += `<br>· <span style="color:#16a34a">${knownCount} 个你已认识</span>`;
+    if (existingCount > 0) msg += `<br>· ${existingCount} 个已存在于词库`;
+  }
+  showModal('导入完成', msg);
   renderHome();
 }
 
