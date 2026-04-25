@@ -1210,7 +1210,7 @@ Return ONLY a valid JSON array in this exact format, no markdown, no explanation
   ...
 ]
 
-Generate about 30-50 words.`;
+Generate as many common vocabulary words as appropriate for this theme.`;
 
   document.getElementById('gen-prompt').value = prompt;
   document.getElementById('gen-prompt-box').style.display = 'block';
@@ -1225,46 +1225,150 @@ function copyPrompt() {
   showToast('提示词已复制');
 }
 
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
 function parseGenerated() {
   const text = document.getElementById('gen-result').value.trim();
   if (!text) { showToast('请先粘贴AI返回的结果'); return; }
 
-  let data;
-  try {
-    // 尝试提取JSON
-    const match = text.match(/\[[\s\S]*\]/);
-    data = JSON.parse(match ? match[0] : text);
-  } catch(e) {
-    showToast('解析失败，请检查JSON格式');
+  let data = null;
+
+  // 尝试1：直接解析整个文本
+  try { data = JSON.parse(text); } catch(e) {}
+
+  // 尝试2：去掉markdown代码块后解析
+  if (!data) {
+    try {
+      const clean = text.replace(/```(?:json)?\s*([\s\S]*?)\s*```/g, '$1').trim();
+      if (clean !== text) data = JSON.parse(clean);
+    } catch(e) {}
+  }
+
+  // 尝试3：提取方括号内容
+  if (!data) {
+    try {
+      const match = text.match(/\[[\s\S]*\]/);
+      if (match) data = JSON.parse(match[0]);
+    } catch(e) {}
+  }
+
+  // 尝试4：去掉markdown后提取方括号
+  if (!data) {
+    try {
+      const clean = text.replace(/```(?:json)?\s*([\s\S]*?)\s*```/g, '$1').trim();
+      const match = clean.match(/\[[\s\S]*\]/);
+      if (match) data = JSON.parse(match[0]);
+    } catch(e) {}
+  }
+
+  // 尝试5：找花括号对象，提取里面的第一个数组字段
+  if (!data) {
+    try {
+      const match = text.match(/\{[\s\S]*\}/);
+      if (match) {
+        const obj = JSON.parse(match[0]);
+        for (const key in obj) {
+          if (Array.isArray(obj[key]) && obj[key].length > 0) {
+            data = obj[key];
+            break;
+          }
+        }
+      }
+    } catch(e) {}
+  }
+
+  if (!data) {
+    showModal('解析失败',
+      '无法从AI返回的内容中解析出JSON。<br><br>' +
+      '常见原因：<br>' +
+      '1. AI返回的不是标准JSON格式<br>' +
+      '2. 使用了中文引号 "" 而不是英文引号 ""<br>' +
+      '3. JSON末尾有多余逗号<br><br>' +
+      '原始内容片段：<br>' +
+      '<pre style="background:#f3f4f6;padding:8px;border-radius:6px;overflow-x:auto;font-size:12px">' +
+      escapeHtml(text.slice(0, 800)) +
+      '</pre><br>请检查后重新粘贴。'
+    );
     return;
   }
 
   if (!Array.isArray(data) || data.length === 0) {
-    showToast('未解析到有效单词');
+    showModal('解析失败', '解析成功但未找到单词数组。AI可能返回了对象而非数组，或者数组为空。');
     return;
   }
 
-  // 去重：基于word
-  const existingWords = new Set();
+  // 字段映射：支持中英文字段名
+  function mapFields(item) {
+    if (!item || typeof item !== 'object') return null;
+    const keys = Object.keys(item);
+    const findKey = (candidates) => {
+      for (const c of candidates) {
+        const lk = c.toLowerCase();
+        const found = keys.find(k => k.toLowerCase() === lk);
+        if (found) return item[found];
+      }
+      return undefined;
+    };
+    const word = findKey(['word','单词','词汇','Word','WORD']);
+    if (!word || typeof word !== 'string') return null;
+    return {
+      word: word.trim(),
+      phonetic: String(findKey(['phonetic','音标','发音','phonetics','ipa','Phonetic']) || ''),
+      meaning: String(findKey(['meaning','释义','翻译','中文','意思','definition','translation','Meaning']) || ''),
+      theme: String(findKey(['theme','主题','分类','topic','Theme']) || document.getElementById('gen-theme').value.trim())
+    };
+  }
+
+  const mapped = data.map(mapFields).filter(Boolean);
+
+  if (mapped.length === 0) {
+    showModal('解析失败',
+      '找到了JSON数组，但无法识别字段名。AI可能使用了不常见的字段名。<br><br>' +
+      '支持的字段名：<br>' +
+      '单词：word / 单词 / 词汇<br>' +
+      '释义：meaning / 释义 / 翻译 / 中文 / 意思<br>' +
+      '音标：phonetic / 音标 / 发音<br>' +
+      '主题：theme / 主题 / 分类<br><br>' +
+      '原始内容片段：<br>' +
+      '<pre style="background:#f3f4f6;padding:8px;border-radius:6px;overflow-x:auto;font-size:12px">' +
+      escapeHtml(text.slice(0, 800)) +
+      '</pre>'
+    );
+    return;
+  }
+
+  // 去重
   getAll('words').then(words => {
-    words.forEach(w => existingWords.add(w.word.toLowerCase()));
-    const newWords = data.filter(w => w.word && !existingWords.has(w.word.toLowerCase()));
+    const existingWords = new Set(words.map(w => w.word.toLowerCase()));
+    const newWords = mapped.filter(w => !existingWords.has(w.word.toLowerCase()));
     appState.generatedWords = newWords.map((w, i) => ({
       id: 'gen_' + Date.now() + '_' + i,
       word: w.word,
-      phonetic: w.phonetic || '',
-      meaning: w.meaning || '',
-      theme: w.theme || document.getElementById('gen-theme').value.trim()
+      phonetic: w.phonetic,
+      meaning: w.meaning,
+      theme: w.theme
     }));
+
+    if (appState.generatedWords.length === 0) {
+      showModal('导入提示', '所有单词都已存在于词库中，没有新单词需要导入。');
+      return;
+    }
 
     document.getElementById('gen-count').textContent = appState.generatedWords.length;
     document.getElementById('gen-preview-list').innerHTML = appState.generatedWords.map(w => `
       <div class="vocab-item">
-        <div><span class="w">${w.word}</span><span class="p">${w.phonetic}</span></div>
-        <span class="m">${w.meaning}</span>
+        <div><span class="w">${escapeHtml(w.word)}</span><span class="p">${escapeHtml(w.phonetic)}</span></div>
+        <span class="m">${escapeHtml(w.meaning)}</span>
       </div>
     `).join('');
     document.getElementById('gen-preview-box').style.display = 'block';
+    showToast(`解析成功，发现 ${appState.generatedWords.length} 个新单词`);
+  }).catch(err => {
+    showModal('解析出错', '读取现有词库失败：' + err.message);
   });
 }
 
