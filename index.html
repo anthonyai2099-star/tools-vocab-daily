@@ -1213,6 +1213,7 @@ async function startStudy() {
   showPage('study');
   renderCard();
   updateStudyInfo();
+  if (document.getElementById('setting-autospeak').checked) speak(appState.todayQueue[0].word);
 }
 
 function getYesterdayStr() {
@@ -1251,11 +1252,6 @@ function renderCard() {
 
   // 绑定滑动
   bindSwipe(document.getElementById('active-card'));
-
-  // 自动发音
-  if (document.getElementById('setting-autospeak').checked) {
-    setTimeout(() => speak(word.word), 150);
-  }
 }
 
 function bindSwipe(card) {
@@ -1309,6 +1305,10 @@ async function handleKnown() {
   appState.todayKnown.push(word);
 
   appState.currentIndex++;
+  if (document.getElementById('setting-autospeak').checked) {
+    const next = appState.todayQueue[appState.currentIndex];
+    if (next) speak(next.word);
+  }
   animateCard('right');
 }
 
@@ -1335,6 +1335,10 @@ async function handleUnknown() {
   await put('daily', rec);
 
   appState.currentIndex++;
+  if (document.getElementById('setting-autospeak').checked) {
+    const next = appState.todayQueue[appState.currentIndex];
+    if (next) speak(next.word);
+  }
   animateCard('left');
 }
 
