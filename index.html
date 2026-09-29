@@ -1017,13 +1017,54 @@ function showPage(name) {
   if (name === 'vocab') renderVocab();
 }
 
+const AUDIO_BASE = 'https://dailyvacu-1323718537.cos-website.ap-guangzhou.myqcloud.com/audio/';
+const audioCache = {};
+
 function speak(word) {
-  if (!window.speechSynthesis) return;
-  window.speechSynthesis.cancel();
+  // 优先从 COS 加载预生成的 MP3（兼容所有手机浏览器）
+  const filename = word.toLowerCase().replace(/[ -]/g, '_') + '.mp3';
+  const url = AUDIO_BASE + encodeURIComponent(filename);
+
+  if (audioCache[word]) {
+    audioCache[word].currentTime = 0;
+    audioCache[word].play().catch(() => {});
+    return;
+  }
+
+  const audio = new Audio(url);
+  audio.oncanplaythrough = () => {
+    audioCache[word] = audio;
+    audio.play().catch(() => {});
+  };
+  audio.onerror = () => {
+    // MP3 加载失败，回退到 Web Speech API
+    speakFallback(word);
+  };
+  audio.load();
+}
+
+function speakFallback(word) {
+  const synth = window.speechSynthesis;
+  if (!synth) return;
+  synth.cancel();
+  if (synth.paused) synth.resume();
   const u = new SpeechSynthesisUtterance(word);
   u.lang = 'en-US';
   u.rate = 0.8;
-  window.speechSynthesis.speak(u);
+  u.volume = 1;
+  if (cachedEnVoice) u.voice = cachedEnVoice;
+  synth.speak(u);
+}
+
+// 预加载语音列表（Web Speech API 回退用）
+let cachedEnVoice = null;
+if (window.speechSynthesis) {
+  function loadVoices() {
+    const voices = window.speechSynthesis.getVoices();
+    cachedEnVoice = voices.find(v => v.lang === 'en-US') || voices.find(v => v.lang.startsWith('en')) || null;
+  }
+  loadVoices();
+  window.speechSynthesis.addEventListener('voiceschanged', loadVoices);
 }
 
 function getTodayStr() {
