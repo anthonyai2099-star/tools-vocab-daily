@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#2563eb">
 <title>Vocab Daily</title>
 <link rel="manifest" href="data:application/json;base64,eyJuYW1lIjoiVm9jYWIgRGFpbHkiLCJzaG9ydF9uYW1lIjoiVm9jYWIiLCJzdGFydF91cmwiOiIuIiwiZGlzcGxheSI6InN0YW5kYWxvbmUiLCJiYWNrZ3JvdW5kX2NvbG9yIjoiI2ZmZiIsInRoZW1lX2NvbG9yIjoiIzI1NjNlYiJ9">
@@ -42,7 +42,7 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Ro
 
 /* Study */
 #study-area{position:relative;height:calc(100% - 60px);display:flex;flex-direction:column;align-items:center;justify-content:center}
-.card-wrap{position:relative;width:100%;max-width:400px;height:420px;margin:0 auto}
+.card-wrap{position:relative;width:100%;max-width:400px;height:clamp(300px,calc(100vh - 300px),460px);margin:0 auto}
 .word-card{position:absolute;top:0;left:0;width:100%;height:100%;background:#fff;border-radius:20px;box-shadow:0 4px 20px rgba(0,0,0,.12);display:flex;flex-direction:column;padding:32px 24px;transition:transform .2s,opacity .2s;touch-action:none}
 .word-card .word{font-size:36px;font-weight:700;color:#1f2937;text-align:center;margin-top:40px}
 .word-card .phonetic{font-size:18px;color:#6b7280;text-align:center;margin-top:8px;font-family:"Lucida Sans Unicode",Arial,sans-serif}
@@ -106,6 +106,9 @@ input[type="file"]{display:none}
 /* Empty state */
 .empty{text-align:center;padding:48px 16px;color:#9ca3af}
 .empty .icon{font-size:48px;margin-bottom:16px}
+
+/* Backup reminder */
+.backup-tip{background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;border-radius:12px;padding:12px 14px;margin:12px 0;display:flex;justify-content:space-between;align-items:center;gap:12px;font-size:13px}
 </style>
 </head>
 <body>
@@ -136,6 +139,11 @@ input[type="file"]{display:none}
         <div class="stat-card"><div class="num" id="stat-days">1</div><div class="label">学习天数</div></div>
       </div>
 
+      <div id="backup-tip" class="backup-tip" style="display:none">
+        <span id="backup-tip-text"></span>
+        <button class="btn btn-secondary" style="width:auto;padding:8px 14px;font-size:13px;margin:0" onclick="exportData()">立即备份</button>
+      </div>
+
       <div style="margin-top:16px">
         <div style="font-size:14px;color:#666;margin-bottom:8px">主题筛选（关闭的主题不会出现在学习中）</div>
         <div class="theme-tags" id="theme-tags"></div>
@@ -151,7 +159,7 @@ input[type="file"]{display:none}
       <div id="today-known-list"></div>
       <div id="study-area">
         <div class="card-wrap" id="card-wrap"></div>
-        <div class="swipe-hint">右滑 = 认识 &nbsp;|&nbsp; 左滑 = 不认识</div>
+        <div class="swipe-hint">右滑 或 → = 认识 &nbsp;|&nbsp; 左滑 或 ← = 不认识 &nbsp;|&nbsp; 空格 = 重听</div>
       </div>
       <div class="study-controls">
         <button class="btn btn-secondary" onclick="handleUnknown()">不认识 / 下一个</button>
@@ -165,7 +173,7 @@ input[type="file"]{display:none}
       <div class="done-title">今日完成!</div>
       <div class="done-summary" id="done-summary"></div>
       <button class="btn btn-primary" onclick="showPage('home')">返回首页</button>
-      <button class="btn btn-secondary" onclick="startStudy()">再来一轮</button>
+      <button class="btn btn-secondary" onclick="startStudy(true)">再来一轮（加练）</button>
     </section>
 
     <!-- VOCAB -->
@@ -926,8 +934,19 @@ function openDB() {
   });
 }
 
+// 复用同一个数据库连接：每次读写都新开连接会堆积大量连接、拖慢速度
+let dbConn = null;
+
+async function getDB() {
+  if (dbConn) return dbConn;
+  dbConn = await openDB();
+  dbConn.onclose = () => { dbConn = null; };
+  dbConn.onversionchange = () => { dbConn.close(); dbConn = null; };
+  return dbConn;
+}
+
 async function withStore(storeName, mode = 'readonly') {
-  const db = await openDB();
+  const db = await getDB();
   return db.transaction(storeName, mode).objectStore(storeName);
 }
 
@@ -1017,27 +1036,48 @@ function showPage(name) {
   if (name === 'vocab') renderVocab();
 }
 
-const AUDIO_BASE = 'https://dailyvacu-1323718537.cos-website.ap-guangzhou.myqcloud.com/audio/';
+// 本地音频目录：与 index.html 同级的 audio/（由本地服务器提供，不依赖外网）
+const AUDIO_BASE = 'audio/';
 const audioCache = {};
+let audioFailStreak = 0;   // 连续读取失败次数
+let audioDisabled = false; // 连续失败后本次会话不再尝试 MP3，直接用系统语音
+
+function audioFileName(word) {
+  return word.toLowerCase().replace(/[ -]/g, '_') + '.mp3';
+}
+
+function playAudio(audio) {
+  const p = audio.play();
+  // 被浏览器自动播放策略拦下时静默忽略（用户点过页面后即可正常播放）
+  if (p && p.catch) p.catch(() => {});
+}
 
 function speak(word) {
-  // 优先从 COS 加载预生成的 MP3（兼容所有手机浏览器）
-  const filename = word.toLowerCase().replace(/[ -]/g, '_') + '.mp3';
-  const url = AUDIO_BASE + encodeURIComponent(filename);
+  if (!word) return;
+  if (audioDisabled) { speakFallback(word); return; }
 
-  if (audioCache[word]) {
-    audioCache[word].currentTime = 0;
-    audioCache[word].play().catch(() => {});
+  const key = word.toLowerCase();
+  const cached = audioCache[key];
+  if (cached) {
+    cached.currentTime = 0;
+    playAudio(cached);
     return;
   }
 
-  const audio = new Audio(url);
+  const audio = new Audio(AUDIO_BASE + encodeURIComponent(audioFileName(word)));
+  audio.preload = 'auto';
   audio.oncanplaythrough = () => {
-    audioCache[word] = audio;
-    audio.play().catch(() => {});
+    audioCache[key] = audio;
+    audioFailStreak = 0;
+    playAudio(audio);
   };
   audio.onerror = () => {
-    // MP3 加载失败，回退到 Web Speech API
+    // 本地 MP3 读取失败，回退到系统语音（Web Speech API）
+    audioFailStreak++;
+    if (audioFailStreak >= 3) {
+      audioDisabled = true;
+      showToast('本地音频读取失败，已切换为系统语音');
+    }
     speakFallback(word);
   };
   audio.load();
@@ -1074,7 +1114,7 @@ function getTodayStr() {
 
 // ==================== 初始化 ====================
 async function init() {
-  appState.db = await openDB();
+  appState.db = await getDB();
 
   // 导入/合并内置词库（新增词 + 补全已有词字段）
   const existing = await getAll('words');
@@ -1121,6 +1161,11 @@ async function init() {
     document.getElementById('setting-autospeak').checked = autoSpeakSetting.value;
   }
 
+  // 申请持久化存储：降低浏览器在空间紧张或长期未访问时清空数据的风险
+  try {
+    if (navigator.storage && navigator.storage.persist) await navigator.storage.persist();
+  } catch (e) {}
+
   renderHome();
 }
 
@@ -1155,16 +1200,36 @@ async function renderHome() {
   document.getElementById('home-total').textContent = appState.dailyGoal;
   document.getElementById('home-bar').style.width = Math.min(100, (todayDone / appState.dailyGoal) * 100) + '%';
 
-  // 主题标签
+  // 主题标签（用 DOM 构建，避免主题名里带引号时按钮失效）
   const tagContainer = document.getElementById('theme-tags');
-  tagContainer.innerHTML = themes.map(t => {
-    const active = appState.activeThemes.includes(t);
-    return `<button class="theme-tag ${active?'active':''}" onclick="toggleTheme('${t}')">${t}</button>`;
-  }).join('');
+  tagContainer.innerHTML = '';
+  themes.forEach(t => {
+    const btn = document.createElement('button');
+    btn.className = 'theme-tag' + (appState.activeThemes.includes(t) ? ' active' : '');
+    btn.textContent = t;
+    btn.addEventListener('click', () => toggleTheme(t));
+    tagContainer.appendChild(btn);
+  });
 
   // 学习天数（有记录的不同日期数）
   const allDaily = await getAll('daily');
   document.getElementById('stat-days').textContent = allDaily.length || 1;
+
+  // 备份提醒：从没备份过、或距上次备份超过 7 天就提示
+  const backupSetting = await get('settings', 'lastBackupAt');
+  const tip = document.getElementById('backup-tip');
+  if (!backupSetting) {
+    document.getElementById('backup-tip-text').textContent = '还没有备份过，建议先导出一份';
+    tip.style.display = 'flex';
+  } else {
+    const days = Math.floor((Date.now() - new Date(backupSetting.value).getTime()) / 86400000);
+    if (days >= 7) {
+      document.getElementById('backup-tip-text').textContent = '上次备份 ' + days + ' 天前，建议再导出一份';
+      tip.style.display = 'flex';
+    } else {
+      tip.style.display = 'none';
+    }
+  }
 }
 
 async function toggleTheme(theme) {
@@ -1182,7 +1247,7 @@ async function toggleTheme(theme) {
 }
 
 // ==================== 组卷与学习 ====================
-async function startStudy() {
+async function startStudy(extraRound) {
   const todayStr = getTodayStr();
   const words = await getAll('words');
   const progress = await getAll('progress');
@@ -1240,16 +1305,23 @@ async function startStudy() {
   });
 
   // 取今天需要学习的数量（不超过剩余可用词）
-  const need = Math.min(appState.dailyGoal - todayRec.completed, available.length);
+  // extraRound = 完成今日目标后的「再来一轮（加练）」，不受今日目标剩余量限制
+  const need = extraRound
+    ? Math.min(appState.dailyGoal, available.length)
+    : Math.min(appState.dailyGoal - todayRec.completed, available.length);
 
   if (need <= 0) {
-    showModal('提示', '今日目标已完成！可以再来一轮或明天继续。');
+    showModal('提示', '今日目标已完成！可以点「再来一轮（加练）」继续，或明天再来。');
     return;
   }
 
   appState.todayQueue = available.slice(0, need);
   appState.currentIndex = 0;
-  appState.todayKnown = [];
+
+  // 从今日记录重建「已认识」列表：这样刷新页面后仍能查看和撤销
+  appState.todayKnown = (todayRec.knownIds || [])
+    .map(id => words.find(w => w.id === id))
+    .filter(Boolean);
 
   showPage('study');
   renderCard();
@@ -1283,13 +1355,16 @@ function renderCard() {
   const word = appState.todayQueue[appState.currentIndex];
   wrap.innerHTML = `
     <div class="word-card" id="active-card">
-      <button class="speak-btn" onclick="speak('${word.word}')">&#128266;</button>
-      <span class="theme-label">${word.theme}</span>
-      <div class="word">${word.word}</div>
-      <div class="phonetic">${word.phonetic} <span style="color:#9ca3af;font-size:16px;margin-left:8px">${word.pos || ''}</span></div>
-      <div class="meaning">${word.meaning}</div>
+      <button class="speak-btn" id="card-speak">&#128266;</button>
+      <span class="theme-label">${escapeHtml(word.theme || '')}</span>
+      <div class="word">${escapeHtml(word.word || '')}</div>
+      <div class="phonetic">${escapeHtml(word.phonetic || '')} <span style="color:#9ca3af;font-size:16px;margin-left:8px">${escapeHtml(word.pos || '')}</span></div>
+      <div class="meaning">${escapeHtml(word.meaning || '')}</div>
     </div>
   `;
+
+  // 用事件监听而不是内联 onclick：单词里带引号也不会把按钮弄坏
+  document.getElementById('card-speak').addEventListener('click', () => speak(word.word));
 
   // 绑定滑动
   bindSwipe(document.getElementById('active-card'));
@@ -1321,8 +1396,13 @@ function bindSwipe(card) {
 }
 
 async function handleKnown() {
+  if (cardBusy) return;   // 防连点/连按：同一张卡只记一次账
   const word = appState.todayQueue[appState.currentIndex];
   if (!word) return;
+  cardBusy = true;
+
+  // 记下原状态，撤销时用于还原（否则会丢掉这个词之前的失败次数）
+  const prevProgress = await get('progress', word.id);
 
   // 更新进度
   await put('progress', {
@@ -1342,8 +1422,12 @@ async function handleKnown() {
   rec.knownIds.push(word.id);
   await put('daily', rec);
 
-  // 加入今日可撤销列表
-  appState.todayKnown.push(word);
+  // 加入今日可撤销列表（附带原状态，供撤销时还原）
+  appState.todayKnown.push({
+    ...word,
+    hadProgress: !!prevProgress,
+    prevReviewCount: prevProgress ? (prevProgress.reviewCount || 0) : 0
+  });
 
   appState.currentIndex++;
   if (document.getElementById('setting-autospeak').checked) {
@@ -1354,8 +1438,10 @@ async function handleKnown() {
 }
 
 async function handleUnknown() {
+  if (cardBusy) return;   // 防连点/连按：同一张卡只记一次账
   const word = appState.todayQueue[appState.currentIndex];
   if (!word) return;
+  cardBusy = true;
 
   const prog = await get('progress', word.id);
   const reviewCount = prog ? (prog.reviewCount || 0) + 1 : 1;
@@ -1383,15 +1469,18 @@ async function handleUnknown() {
   animateCard('left');
 }
 
+let cardBusy = false; // 处理中标志：为 true 时忽略后续的点击/按键，防止重复记账
+
 function animateCard(direction) {
   const card = document.getElementById('active-card');
-  if (!card) { renderCard(); return; }
+  if (!card) { cardBusy = false; renderCard(); return; }
   card.style.transition = 'transform 0.3s, opacity 0.3s';
   card.style.transform = direction === 'right' ? 'translateX(120%) rotate(15deg)' : 'translateX(-120%) rotate(-15deg)';
   card.style.opacity = '0';
   setTimeout(() => {
     renderCard();
     updateStudyInfo();
+    cardBusy = false;   // 动画播完才允许处理下一张卡
   }, 300);
 }
 
@@ -1413,11 +1502,20 @@ function toggleKnownList() {
 }
 
 async function undoKnown(index) {
-  const word = appState.todayKnown[index];
-  if (!word) return;
+  const entry = appState.todayKnown[index];
+  if (!entry) return;
 
-  // 删除进度记录中的known状态
-  await remove('progress', word.id);
+  // 还原进度：原本是「不认识」就还原成不认识并保留失败次数，原本没有记录则删除
+  if (entry.hadProgress) {
+    await put('progress', {
+      wordId: entry.id,
+      status: 'unknown',
+      lastReviewed: new Date().toISOString(),
+      reviewCount: entry.prevReviewCount || 0
+    });
+  } else {
+    await remove('progress', entry.id);
+  }
 
   // 修正今日记录
   const todayStr = getTodayStr();
@@ -1425,15 +1523,20 @@ async function undoKnown(index) {
   if (rec) {
     rec.knownCount = Math.max(0, rec.knownCount - 1);
     rec.completed = Math.max(0, rec.completed - 1);
-    rec.knownIds = (rec.knownIds || []).filter(id => id !== word.id);
-    // 把这个词重新加回今日队列
-    appState.todayQueue.splice(appState.currentIndex, 0, word);
+    rec.knownIds = (rec.knownIds || []).filter(id => id !== entry.id);
     await put('daily', rec);
   }
 
+  // 插到当前卡片之后，不顶替正在看的那张卡
+  appState.todayQueue.splice(appState.currentIndex + 1, 0, entry);
   appState.todayKnown.splice(index, 1);
-  toggleKnownList();
-  toggleKnownList(); // refresh
+
+  // 列表开着就刷新一次
+  const list = document.getElementById('today-known-list');
+  if (list.classList.contains('show')) {
+    list.classList.remove('show');
+    toggleKnownList();
+  }
   updateStudyInfo();
   renderCard();
   showToast('已撤销');
@@ -1476,12 +1579,12 @@ async function renderVocab() {
   list.innerHTML = totalInfo + filtered.map(w => `
     <div class="vocab-item">
       <div>
-        <span class="w">${w.word}</span>
-        <span class="p">${w.phonetic}</span>
-        <span class="p">${w.pos || ''}</span>
+        <span class="w">${escapeHtml(w.word || '')}</span>
+        <span class="p">${escapeHtml(w.phonetic || '')}</span>
+        <span class="p">${escapeHtml(w.pos || '')}</span>
       </div>
-      <span class="m">${w.meaning}</span>
-      <span class="t">${w.theme}</span>
+      <span class="m">${escapeHtml(w.meaning || '')}</span>
+      <span class="t">${escapeHtml(w.theme || '')}</span>
     </div>
   `).join('');
 }
@@ -1611,8 +1714,10 @@ function parseGenerated() {
     };
     const word = findKey(['word','单词','词汇','Word','WORD']);
     if (!word || typeof word !== 'string') return null;
+    const trimmedWord = word.trim();
+    if (!trimmedWord) return null;
     return {
-      word: word.trim(),
+      word: trimmedWord,
       phonetic: String(findKey(['phonetic','音标','发音','phonetics','ipa','Phonetic']) || ''),
       meaning: String(findKey(['meaning','释义','翻译','中文','意思','definition','translation','Meaning']) || ''),
       pos: String(findKey(['pos','词性','partOfSpeech','part','POS']) || ''),
@@ -1622,7 +1727,17 @@ function parseGenerated() {
 
   const mapped = data.map(mapFields).filter(Boolean);
 
-  if (mapped.length === 0) {
+  // 同一批里可能出现重复单词（AI 常见的毛病）。words 表对单词建了唯一索引，
+  // 重复写入会触发整批回滚，所以这里先按单词去重。
+  const uniqueMap = new Map();
+  for (const w of mapped) {
+    const key = w.word.toLowerCase();
+    if (!uniqueMap.has(key)) uniqueMap.set(key, w);
+  }
+  const uniqueMapped = Array.from(uniqueMap.values());
+  const dupSkipped = mapped.length - uniqueMapped.length;
+
+  if (uniqueMapped.length === 0) {
     showModal('解析失败',
       '找到了JSON数组，但无法识别字段名。AI可能使用了不常见的字段名。<br><br>' +
       '支持的字段名：<br>' +
@@ -1645,7 +1760,7 @@ function parseGenerated() {
 
     const result = { newWords: [], existingWords: [], knownWords: [] };
 
-    for (const w of mapped) {
+    for (const w of uniqueMapped) {
       const lower = w.word.toLowerCase();
       const existing = existingMap.get(lower);
       if (!existing) {
@@ -1668,9 +1783,9 @@ function parseGenerated() {
     appState.generatedExisting = result.existingWords;
     appState.generatedKnown = result.knownWords;
 
-    const total = mapped.length;
+    const total = uniqueMapped.length;
     const stats = `<div style="font-size:14px;color:#666;margin-bottom:12px">
-      共解析 ${total} 个 · 新词 <b>${result.newWords.length}</b> 个
+      共解析 ${total} 个${dupSkipped > 0 ? '（已跳过 ' + dupSkipped + ' 个重复词）' : ''} · 新词 <b>${result.newWords.length}</b> 个
       ${result.existingWords.length > 0 ? '· 已存在 ' + result.existingWords.length + ' 个' : ''}
       ${result.knownWords.length > 0 ? '· 你已认识 ' + result.knownWords.length + ' 个' : ''}
     </div>`;
@@ -1705,32 +1820,46 @@ function parseGenerated() {
 
 async function importGenerated() {
   if (appState.generatedWords.length === 0) return;
-  const count = appState.generatedWords.length;
-  const db = await openDB();
-  const tx = db.transaction('words', 'readwrite');
-  const store = tx.objectStore('words');
-  for (const w of appState.generatedWords) store.put(w);
-  await new Promise((res,rej)=>{tx.oncomplete=res;tx.onerror=rej;});
+  try {
+    // 写入前再和当前词库核对一次，彻底避免重复单词导致整批写入失败
+    const existingWords = await getAll('words');
+    const existingSet = new Set(existingWords.map(w => (w.word || '').toLowerCase()));
+    const toAdd = appState.generatedWords.filter(w => !existingSet.has(w.word.toLowerCase()));
+    const skippedNow = appState.generatedWords.length - toAdd.length;
+    const count = toAdd.length;
 
-  const existingCount = appState.generatedExisting ? appState.generatedExisting.length : 0;
-  const knownCount = appState.generatedKnown ? appState.generatedKnown.length : 0;
+    if (count > 0) {
+      const db = await getDB();
+      const tx = db.transaction('words', 'readwrite');
+      const store = tx.objectStore('words');
+      for (const w of toAdd) store.put(w);
+      await new Promise((res, rej) => { tx.oncomplete = res; tx.onerror = rej; });
+    }
 
-  appState.generatedWords = [];
-  appState.generatedExisting = [];
-  appState.generatedKnown = [];
-  document.getElementById('gen-theme').value = '';
-  document.getElementById('gen-result').value = '';
-  document.getElementById('gen-prompt-box').style.display = 'none';
-  document.getElementById('gen-result-box').style.display = 'none';
-  document.getElementById('gen-preview-box').style.display = 'none';
-  let msg = `成功导入 <b>${count}</b> 个新单词！`;
-  if (existingCount > 0 || knownCount > 0) {
-    msg += `<br><br>跳过 ${existingCount + knownCount} 个：`;
-    if (knownCount > 0) msg += `<br>· <span style="color:#16a34a">${knownCount} 个你已认识</span>`;
-    if (existingCount > 0) msg += `<br>· ${existingCount} 个已存在于词库`;
+    const existingCount = (appState.generatedExisting ? appState.generatedExisting.length : 0) + skippedNow;
+    const knownCount = appState.generatedKnown ? appState.generatedKnown.length : 0;
+
+    appState.generatedWords = [];
+    appState.generatedExisting = [];
+    appState.generatedKnown = [];
+    document.getElementById('gen-theme').value = '';
+    document.getElementById('gen-result').value = '';
+    document.getElementById('gen-prompt-box').style.display = 'none';
+    document.getElementById('gen-result-box').style.display = 'none';
+    document.getElementById('gen-preview-box').style.display = 'none';
+    let msg = `成功导入 <b>${count}</b> 个新单词！`;
+    if (existingCount > 0 || knownCount > 0) {
+      msg += `<br><br>跳过 ${existingCount + knownCount} 个：`;
+      if (knownCount > 0) msg += `<br>· <span style="color:#16a34a">${knownCount} 个你已认识</span>`;
+      if (existingCount > 0) msg += `<br>· ${existingCount} 个已存在于词库`;
+    }
+    showModal('导入完成', msg);
+    renderHome();
+  } catch (err) {
+    showModal('导入失败',
+      '写入词库时出错，单词未导入。<br><br>错误信息：' +
+      escapeHtml(err && err.message ? err.message : String(err)));
   }
-  showModal('导入完成', msg);
-  renderHome();
 }
 
 // ==================== 设置 ====================
@@ -1759,7 +1888,10 @@ async function exportData() {
   a.download = 'vocab-backup-' + getTodayStr() + '.json';
   a.click();
   URL.revokeObjectURL(url);
+  // 记下备份时间，首页据此提醒
+  await put('settings', {key: 'lastBackupAt', value: new Date().toISOString()});
   showToast('备份已下载');
+  renderHome();
 }
 
 async function importData(input) {
@@ -1771,41 +1903,55 @@ async function importData(input) {
     data = JSON.parse(text);
   } catch(e) {
     showToast('文件格式错误');
+    input.value = '';
     return;
   }
 
-  if (!data.words) { showToast('无效的备份文件'); return; }
+  if (!data.words) { showToast('无效的备份文件'); input.value = ''; return; }
 
-  const db = await openDB();
-
-  if (data.words) {
-    const tx = db.transaction('words', 'readwrite');
-    const store = tx.objectStore('words');
-    for (const w of data.words) store.put(w);
-    await new Promise((res,rej)=>{tx.oncomplete=res;tx.onerror=rej;});
-  }
-  if (data.progress) {
-    const tx = db.transaction('progress', 'readwrite');
-    const store = tx.objectStore('progress');
-    for (const p of data.progress) store.put(p);
-    await new Promise((res,rej)=>{tx.oncomplete=res;tx.onerror=rej;});
-  }
-  if (data.settings) {
-    const tx = db.transaction('settings', 'readwrite');
-    const store = tx.objectStore('settings');
-    for (const s of data.settings) store.put(s);
-    await new Promise((res,rej)=>{tx.oncomplete=res;tx.onerror=rej;});
-  }
-  if (data.daily) {
-    const tx = db.transaction('daily', 'readwrite');
-    const store = tx.objectStore('daily');
-    for (const d of data.daily) store.put(d);
-    await new Promise((res,rej)=>{tx.oncomplete=res;tx.onerror=rej;});
+  // 导入是合并覆盖，旧备份可能把较新的学习进度回退，先让用户确认
+  if (!confirm('导入会与当前数据合并：同名单词和进度以备份文件为准，可能覆盖你最近的学习记录。\n\n建议先点「导出」保存当前数据。\n\n确定继续导入吗？')) {
+    input.value = '';
+    return;
   }
 
-  input.value = '';
-  showToast('数据恢复成功');
-  renderHome();
+  try {
+    const db = await getDB();
+
+    if (data.words) {
+      const tx = db.transaction('words', 'readwrite');
+      const store = tx.objectStore('words');
+      for (const w of data.words) store.put(w);
+      await new Promise((res,rej)=>{tx.oncomplete=res;tx.onerror=rej;});
+    }
+    if (data.progress) {
+      const tx = db.transaction('progress', 'readwrite');
+      const store = tx.objectStore('progress');
+      for (const p of data.progress) store.put(p);
+      await new Promise((res,rej)=>{tx.oncomplete=res;tx.onerror=rej;});
+    }
+    if (data.settings) {
+      const tx = db.transaction('settings', 'readwrite');
+      const store = tx.objectStore('settings');
+      for (const s of data.settings) store.put(s);
+      await new Promise((res,rej)=>{tx.oncomplete=res;tx.onerror=rej;});
+    }
+    if (data.daily) {
+      const tx = db.transaction('daily', 'readwrite');
+      const store = tx.objectStore('daily');
+      for (const d of data.daily) store.put(d);
+      await new Promise((res,rej)=>{tx.oncomplete=res;tx.onerror=rej;});
+    }
+
+    input.value = '';
+    showToast('数据恢复成功');
+    renderHome();
+  } catch (err) {
+    input.value = '';
+    showModal('导入失败',
+      '恢复数据时出错，部分数据可能未写入。<br><br>错误信息：' +
+      escapeHtml(err && err.message ? err.message : String(err)));
+  }
 }
 
 async function resetProgress() {
@@ -1825,6 +1971,26 @@ async function clearAll() {
   showToast('所有数据已清除');
   renderHome();
 }
+
+// ==================== 桌面端键盘快捷键 ====================
+document.addEventListener('keydown', e => {
+  // 只在学习页生效，输入框里打字时不拦截
+  if (!document.getElementById('page-study').classList.contains('active')) return;
+  const tag = e.target && e.target.tagName;
+  if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+
+  if (e.key === 'ArrowRight') {
+    e.preventDefault();
+    handleKnown();
+  } else if (e.key === 'ArrowLeft') {
+    e.preventDefault();
+    handleUnknown();
+  } else if (e.key === ' ' || e.key === 'Spacebar') {
+    e.preventDefault();
+    const w = appState.todayQueue[appState.currentIndex];
+    if (w) speak(w.word);
+  }
+});
 
 // ==================== 启动 ====================
 init();

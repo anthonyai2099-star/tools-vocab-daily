@@ -22,15 +22,18 @@ echo ========================================
 echo   Server is running!
 echo ========================================
 echo.
-echo Open on your phone:
-echo   http://%ip%:8080/
-echo.
-echo Or on this computer:
+echo On this computer (opens automatically):
 echo   http://localhost:8080/
+echo.
+echo Open on your phone (same WiFi):
+echo   http://%ip%:8080/
 echo.
 echo Press Ctrl+C to stop.
 echo ========================================
 echo.
+
+:: Open the browser automatically after 2 seconds (give the server time to start)
+start "" /min cmd /c "timeout /t 2 /nobreak >nul & start http://localhost:8080/"
 
 python -m http.server 8080
 if errorlevel 1 (
