@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+
+# 依赖（如果以后引入）
+node_modules/
+
+# 环境变量与密钥
+.env
+.env.local
+.env.*.local
+*.key
+*.pem
+
+# 日志
+*.log
+logs/
+
+# 临时文件 / 缓存
+*.tmp
+*.bak
+*.swp
+*~
+.cache/
+
+# 系统
+.DS_Store
+Thumbs.db
+desktop.ini
